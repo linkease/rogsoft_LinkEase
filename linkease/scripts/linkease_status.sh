@@ -3,7 +3,7 @@ source /koolshare/scripts/base.sh
 
 linkease_status=`pidof link-ease`
 linkease_pid=`ps | grep -w link-ease | grep -v grep | awk '{print $1}'`
-#linkease_info=`/koolshare/bin/linkease -vv`
+#linkease_info=`/koolshare/bin/link-ease -vv`
 linkease_ver=`echo ${linkease_info} | awk '{print $1}'`
 linkease_rid=`echo ${linkease_info} | awk '{print $2}'`
 if [ -n "$linkease_status" ];then
