@@ -111,8 +111,8 @@ function init() {
 	show_menu(menu_hook);
 	get_dbus_data();
 	get_status();
-	check_dir_path();
-	initial_dir();
+	//check_dir_path();
+	//initial_dir();
 }
 
 function get_dbus_data() {

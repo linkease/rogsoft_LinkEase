@@ -7,7 +7,7 @@ BIN=/koolshare/bin/link-ease
 PID_FILE=/var/run/link-ease.pid
 
 start_ee(){
-	start-stop-daemon -S -q	-b -m -p $PID_FILE -x $BIN -- -c /tmp -u $linkease_token -share $linkease_dir
+	start-stop-daemon -S -q	-b -m -p $PID_FILE -x $BIN
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
 }

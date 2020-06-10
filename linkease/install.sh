@@ -99,10 +99,10 @@ chmod +x /koolshare/scripts/*
 # 离线安装用
 dbus set linkease_version="$(cat $DIR/version)"
 dbus set softcenter_module_linkease_version="$(cat $DIR/version)"
-dbus set softcenter_module_linkease_description="易有云 （EasyExplorer） 跨平台文件同步，支持双向同步！"
+dbus set softcenter_module_linkease_description="易有云2.0 （LinkEase） 手机相册同步，PC 双向同步！"
 dbus set softcenter_module_linkease_install="1"
 dbus set softcenter_module_linkease_name="linkease"
-dbus set softcenter_module_linkease_title="易有云"
+dbus set softcenter_module_linkease_title="易有云2.0"
 
 # re-enable linkease
 if [ "$enable" == "1" ];then
@@ -110,5 +110,5 @@ if [ "$enable" == "1" ];then
 fi
 
 # 完成
-echo_date "易有云插件安装完毕！"
+echo_date "易有云2.0 插件安装完毕！"
 exit_install
