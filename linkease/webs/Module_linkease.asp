@@ -645,7 +645,7 @@ var PROTOCOL = "cifs";
                                         <div style="margin:0px 0 10px 5px;" class="splitLine"></div>
                                         <div class="SimpleNote">
                                             <li> LinkEase支持PC、Mac、iOS、安卓、NAS和路由器平台，iOS易有云公测中：</li>
-                                            <li><i>相关文档：</i><a href="https://github.com/koolshare/linkease"
+                                            <li><i>相关文档：</i><a href="https://www.ddnsto.com/linkease/"
                                                     target="_blank"><em><u>[插件更新日志 ]</u></em></a></li>
                                             <li><i>注意事项：</i>请保护好你的LinkEase的账号密码，如果被其他人获知，那么下一个摄影大师可能就是你！！！</li>
                                         </div>
