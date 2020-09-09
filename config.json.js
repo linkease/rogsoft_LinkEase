@@ -4,5 +4,5 @@
     "md5": "d8be30e784693f5ea51e33e52647ff08", 
     "module": "linkease", 
     "title": "易有云2.0", 
-    "version": "2.9.0"
+    "version": "2.9.1"
 }
