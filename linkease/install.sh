@@ -1,9 +1,9 @@
 #!/bin/sh
 source /koolshare/scripts/base.sh
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
+DIR=$(cd $(dirname $0); pwd)
 MODEL=$(nvram get productid)
 module=linkease
-DIR=$(cd $(dirname $0); pwd)
 
 # 获取固件类型
 _get_type() {
@@ -41,7 +41,6 @@ exit_install(){
 }
 
 # 判断路由架构和平台
-# linkease 插件可以同时用于hnd/arm384平台
 case $(uname -m) in
 	aarch64)
 		if [ "$(uname -o|grep Merlin)" -a -d "/koolshare" ];then
@@ -51,11 +50,7 @@ case $(uname -m) in
 		fi
 		;;
 	armv7l)
-		if [ "$MODEL" == "TUF-AX3000" -o "$MODEL" == "RT-AX82U" ] && [ -d "/koolshare" ];then
-			# 这里是armv7l 384官改固件
-			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
-		elif [ "`uname -o|grep Merlin`" ] && [ -d "/koolshare" ] && [ -n "`nvram get buildno|grep 384`" ];then
-			# 这里是armv7l 384梅林固件
+		if [ "$MODEL" == "TUF-AX3000" -o "$MODEL" == "RT-AX82U" -o "$MODEL" == "RT-AX95Q" ] && [ -d "/koolshare" ];then
 			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
 		else
 			exit_install 1
@@ -66,7 +61,16 @@ case $(uname -m) in
 	;;
 esac
 
-if [ "$MODEL" == "GT-AC5300" ] || [ "$MODEL" == "GT-AX11000" ] || [ -n "$(nvram get extendno | grep koolshare)" -a "$MODEL" == "RT-AC86U" ];then
+ROG_86U=0
+EXT_NU=$(nvram get extendno)
+EXT_NU=${EXT_NU%_*}
+
+if [ -n "$(nvram get extendno | grep koolshare)" -a "$(nvram get productid)" == "RT-AC86U" -a "${EXT_NU}" -lt "81918" ];then
+	ROG_86U=1
+fi
+
+# 判断固件需要什么UI
+if [ "$MODEL" == "GT-AC5300" -o "$MODEL" == "GT-AX11000" -o "$ROG_86U" == "1" ];then
 	# 官改固件，骚红皮肤
 	ROG=1
 fi
@@ -75,6 +79,7 @@ if [ "$MODEL" == "TUF-AX3000" ];then
 	# 官改固件，橙色皮肤
 	TUF=1
 fi
+
 # stop linkease first
 enable=`dbus get linkease_enable`
 if [ "$enable" == "1" ];then
