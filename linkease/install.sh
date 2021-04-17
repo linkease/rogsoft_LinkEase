@@ -1,9 +1,17 @@
 #!/bin/sh
 source /koolshare/scripts/base.sh
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
-MODEL=$(nvram get productid)
-module=linkease
 DIR=$(cd $(dirname $0); pwd)
+module=linkease
+ROG_86U=0
+BUILDNO=$(nvram get buildno)
+EXT_NU=$(nvram get extendno)
+EXT_NU=$(echo ${EXT_NU%_*} | grep -Eo "^[0-9]{1,10}$")
+[ -z "${EXT_NU}" ] && EXT_NU="0"
+odmpid=$(nvram get odmpid)
+productid=$(nvram get productid)
+[ -n "${odmpid}" ] && MODEL="${odmpid}" || MODEL="${productid}"
+LINUX_VER=$(uname -r|awk -F"." '{print $1$2}')
 
 # 获取固件类型
 _get_type() {
@@ -27,7 +35,8 @@ exit_install(){
 	local state=$1
 	case $state in
 		1)
-			echo_date "本插件适用于适用于【koolshare 梅林改/官改 hnd/axhnd/axhnd.675x】固件平台，你的固件平台不能安装！！！"
+			echo_date "本插件适用于【koolshare 梅林改/官改 hnd/axhnd/axhnd.675x】固件平台！"
+			echo_date "你的固件平台不能安装！！!"
 			echo_date "本插件支持机型/平台：https://github.com/koolshare/rogsoft#rogsoft"
 			echo_date "退出安装！"
 			rm -rf /tmp/${module}* >/dev/null 2>&1
@@ -40,41 +49,30 @@ exit_install(){
 	esac
 }
 
-# 判断路由架构和平台
-# linkease 插件可以同时用于hnd/arm384平台
-case $(uname -m) in
-	aarch64)
-		if [ "$(uname -o|grep Merlin)" -a -d "/koolshare" ];then
-			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
-		else
-			exit_install 1
-		fi
-		;;
-	armv7l)
-		if [ "$MODEL" == "TUF-AX3000" -o "$MODEL" == "RT-AX82U" ] && [ -d "/koolshare" ];then
-			# 这里是armv7l 384官改固件
-			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
-		elif [ "`uname -o|grep Merlin`" ] && [ -d "/koolshare" ] && [ -n "`nvram get buildno|grep 384`" ];then
-			# 这里是armv7l 384梅林固件
-			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
-		else
-			exit_install 1
-		fi
-		;;
-	*)
-		exit_install 1
-	;;
-esac
+# 判断路由架构和平台：koolshare固件
+# V1.5代软件中心API：有httpdb文件
+# 同时支持hnd和arm384平台
+if [ -d "/koolshare" -a -f "/koolshare/bin/httpdb" -a -f "/usr/bin/skipd" ];then
+	echo_date 机型：${MODEL} $(_get_type) 符合安装要求，开始安装插件！
+else
+	exit_install 1
+fi
 
-if [ "$MODEL" == "GT-AC5300" ] || [ "$MODEL" == "GT-AX11000" ] || [ -n "$(nvram get extendno | grep koolshare)" -a "$MODEL" == "RT-AC86U" ];then
+# 判断固件UI类型
+if [ -n "$(nvram get extendno | grep koolshare)" -a "$(nvram get productid)" == "RT-AC86U" -a "${EXT_NU}" -lt "81918" -a "${BUILDNO}" != "386" ];then
+	ROG_86U=1
+fi
+
+if [ "${MODEL}" == "GT-AC5300" -o "${MODEL}" == "GT-AX11000" -o "${MODEL}" == "GT-AX11000_BO4"  -o "$ROG_86U" == "1" ];then
 	# 官改固件，骚红皮肤
 	ROG=1
 fi
 
-if [ "$MODEL" == "TUF-AX3000" ];then
+if [ "${MODEL}" == "TUF-AX3000" ];then
 	# 官改固件，橙色皮肤
 	TUF=1
 fi
+
 # stop linkease first
 enable=`dbus get linkease_enable`
 if [ "$enable" == "1" ];then
@@ -88,11 +86,14 @@ cp -rf /tmp/linkease/webs/* /koolshare/webs/
 cp -rf /tmp/linkease/res/* /koolshare/res/
 cp -rf /tmp/linkease/uninstall.sh /koolshare/scripts/uninstall_linkease.sh
 if [ "$ROG" == "1" ];then
+	echo_date "安装ROG皮肤！"
 	continue
 else
 	if [ "$TUF" == "1" ];then
+		echo_date "安装TUF皮肤！"
 		sed -i 's/3e030d/3e2902/g;s/91071f/92650F/g;s/680516/D0982C/g;s/cf0a2c/c58813/g;s/700618/74500b/g;s/530412/92650F/g' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
 	else
+		echo_date "安装ASUSWRT皮肤！"
 		sed -i '/rogcss/d' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
 	fi
 fi
