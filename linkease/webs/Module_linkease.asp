@@ -644,9 +644,9 @@ var PROTOCOL = "cifs";
                                         </div>
                                         <div style="margin:0px 0 10px 5px;" class="splitLine"></div>
                                         <div class="SimpleNote">
-                                            <li> LinkEase支持Windows、MacOS、iOS、安卓、NAS和路由器平台，<a href="https://doc.linkease.com/downloads/">全平台下载</a>：</li>
+                                            <li> LinkEase支持Windows、MacOS、iOS、安卓、NAS和路由器平台，<a href="https://doc.linkease.com/downloads/" target="_blank">点我全平台下载</a>：</li>
                                             <li><i>相关文档：</i><a href="https://doc.linkease.com/zh/guide/linkease_app/"
-                                                    target="_blank"><em><u>[插件更新日志 ]</u></em></a></li>
+                                                    target="_blank"><em><u>[使用教程]</u></em></a></li>
                                             <li><i>注意事项：</i>请保护好你的LinkEase的账号密码，如果被其他人获知，那么下一个摄影大师可能就是你！！！</li>
                                         </div>
                                         <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0"
