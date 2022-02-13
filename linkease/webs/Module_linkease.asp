@@ -634,7 +634,7 @@ var PROTOCOL = "cifs";
                                 <tr>
                                     <td bgcolor="#4D595D" colspan="3" valign="top">
                                         <div>&nbsp;</div>
-                                        <div class="formfonttitle">易有云2.0（LinkEase）跨平台文件同步</div>
+                                        <div class="formfonttitle">易有云2.0（LinkEase）远程文件管理，家庭相册备份</div>
                                         <div style="float:right; width:15px; height:25px;margin-top:-20px">
                                             <img id="return_btn" onclick="reload_Soft_Center();" align="right"
                                                 style="cursor:pointer;position:absolute;margin-left:-30px;margin-top:-25px;"
@@ -644,8 +644,8 @@ var PROTOCOL = "cifs";
                                         </div>
                                         <div style="margin:0px 0 10px 5px;" class="splitLine"></div>
                                         <div class="SimpleNote">
-                                            <li> LinkEase支持PC、Mac、iOS、安卓、NAS和路由器平台，iOS易有云公测中：</li>
-                                            <li><i>相关文档：</i><a href="https://www.ddnsto.com/linkease/"
+                                            <li> LinkEase支持Windows、MacOS、iOS、安卓、NAS和路由器平台，<a href="https://doc.linkease.com/downloads/">全平台下载</a>：</li>
+                                            <li><i>相关文档：</i><a href="https://doc.linkease.com/zh/guide/linkease_app/"
                                                     target="_blank"><em><u>[插件更新日志 ]</u></em></a></li>
                                             <li><i>注意事项：</i>请保护好你的LinkEase的账号密码，如果被其他人获知，那么下一个摄影大师可能就是你！！！</li>
                                         </div>
