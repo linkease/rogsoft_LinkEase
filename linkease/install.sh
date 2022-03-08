@@ -40,9 +40,11 @@ get_fw_type() {
 }
 
 platform_test(){
-	local LINUX_VER=$(uname -r|awk -F"." '{print $1$2}')
-	if [ -d "/koolshare" -a -f "/usr/bin/skipd" -a "${LINUX_VER}" -ge "41" ];then
-		echo_date 机型："${MODEL} ${FW_TYPE_NAME} 符合安装要求，开始安装插件！"
+	# 判断路由架构和平台：koolshare固件
+	# V1.5代软件中心API：有httpdb文件
+	# 同时支持hnd和arm384平台
+	if [ -d "/koolshare" -a -f "/koolshare/bin/httpdb" -a -f "/usr/bin/skipd" ];then
+		echo_date 机型：${MODEL} ${FW_TYPE_NAME} 符合安装要求，开始安装插件！
 	else
 		exit_install 1
 	fi
@@ -76,13 +78,18 @@ get_ui_type(){
 		# GT-AX11000从386.2开始已经支持梅林固件，其UI是ASUSWRT
 		ROG_GTAX11000=0
 	fi
+	# GT-AXE11000
+	if [ "${MODEL}" == "GT-AXE11000" ] && [ "${FW_TYPE_CODE}" == "3" -o "${FW_TYPE_CODE}" == "4" ];then
+		# GT-AXE11000从386.5开始已经支持梅林固件，其UI是ASUSWRT
+		ROG_GTAXE11000=0
+	fi
 	# ROG UI
 	if [ "${ROG_GTAC5300}" == "1" -o "${ROG_RTAC86U}" == "1" -o "${ROG_GTAC2900}" == "1" -o "${ROG_GTAX11000}" == "1" -o "${ROG_GTAXE11000}" == "1" -o "${ROG_GTAX6000}" == "1" ];then
-		# GT-AC5300、RT-AC86U部分版本、GT-AC2900部分版本、GT-AX11000部分版本、GT-AXE11000全部版本， GT-AX6000 骚红皮肤
+		# GT-AC5300、RT-AC86U部分版本、GT-AC2900部分版本、GT-AX11000部分版本、GT-AXE11000官改版本， GT-AX6000 骚红皮肤
 		UI_TYPE="ROG"
 	fi
 	# TUF UI
-	if [ "${MODEL}" == "TUF-AX3000" ];then
+	if [ "${MODEL%-*}" == "TUF" ];then
 		# 官改固件，橙色皮肤
 		UI_TYPE="TUF"
 	fi
@@ -92,9 +99,8 @@ exit_install(){
 	local state=$1
 	case $state in
 		1)
-			echo_date "本插件适用于【koolshare 梅林改/官改 hnd/axhnd/axhnd.675x】固件平台！"
+			echo_date "本插件适用于【koolshare 梅林改/官改 arm/hnd/axhnd/axhnd.675x】固件平台！"
 			echo_date "你的固件平台不能安装！！!"
-			echo_date "本插件支持机型/平台：https://github.com/koolshare/rogsoft#rogsoft"
 			echo_date "退出安装！"
 			rm -rf /tmp/${module}* >/dev/null 2>&1
 			exit 1
@@ -112,13 +118,11 @@ install_ui(){
 	if [ "${UI_TYPE}" == "ROG" ];then
 		echo_date "安装ROG皮肤！"
 		sed -i '/asuscss/d' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
-	fi
-	if [ "${UI_TYPE}" == "TUF" ];then
+	elif [ "${UI_TYPE}" == "TUF" ];then
 		echo_date "安装TUF皮肤！"
 		sed -i '/asuscss/d' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
 		sed -i 's/3e030d/3e2902/g;s/91071f/92650F/g;s/680516/D0982C/g;s/cf0a2c/c58813/g;s/700618/74500b/g;s/530412/92650F/g' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
-	fi
-	if [ "${UI_TYPE}" == "ASUSWRT" ];then
+	elif [ "${UI_TYPE}" == "ASUSWRT" ];then
 		echo_date "安装ASUSWRT皮肤！"
 		sed -i '/rogcss/d' /koolshare/webs/Module_${module}.asp >/dev/null 2>&1
 	fi
