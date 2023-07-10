@@ -9,7 +9,7 @@
     <meta HTTP-EQUIV="Expires" CONTENT="-1" />
     <link rel="shortcut icon" href="images/favicon.png" />
     <link rel="icon" href="images/favicon.png" />
-    <title>软件中心 - 易有云2.0（LinkEase）</title>
+    <title>软件中心 - 易有云（LinkEase）</title>
     <link rel="stylesheet" type="text/css" href="index_style.css" />
     <link rel="stylesheet" type="text/css" href="form_style.css" />
     <link rel="stylesheet" type="text/css" href="usp_style.css" />
@@ -634,7 +634,7 @@ var PROTOCOL = "cifs";
                                 <tr>
                                     <td bgcolor="#4D595D" colspan="3" valign="top">
                                         <div>&nbsp;</div>
-                                        <div class="formfonttitle">易有云2.0（LinkEase）远程文件管理，家庭相册备份</div>
+                                        <div class="formfonttitle">易有云（LinkEase）远程文件管理，家庭相册备份</div>
                                         <div style="float:right; width:15px; height:25px;margin-top:-20px">
                                             <img id="return_btn" onclick="reload_Soft_Center();" align="right"
                                                 style="cursor:pointer;position:absolute;margin-left:-30px;margin-top:-25px;"
@@ -644,10 +644,10 @@ var PROTOCOL = "cifs";
                                         </div>
                                         <div style="margin:0px 0 10px 5px;" class="splitLine"></div>
                                         <div class="SimpleNote">
-                                            <li> LinkEase支持Windows、MacOS、iOS、安卓、NAS和路由器平台，<a href="https://doc.linkease.com/downloads/" target="_blank">点我全平台下载</a>：</li>
-                                            <li><i>相关文档：</i><a href="https://doc.linkease.com/zh/guide/linkease_app/"
-                                                    target="_blank"><em><u>[使用教程]</u></em></a></li>
-                                            <li><i>注意事项：</i>请保护好你的LinkEase的账号密码，如果被其他人获知，那么下一个摄影大师可能就是你！！！</li>
+                                            <li>支持 Windows、macOS、iOS、安卓、电视、NAS、路由器等平台。轻松实现文件互传、相册备份、文件同步，确保数据不丢失！</li>
+                                            <li><i>相关文档：</i><a href="https://doc.linkease.com/zh/guide/linkease/install/device/koolcenter_merlin.html" target="_blank"><em><u>[使用教程]</u></em></a></li>
+											<li><i>交流反馈：</i><a href="https://pd.qq.com/s/cr5pja9bu" target="_blank"><em><u>[加入QQ频道]</u></em></a></li>													
+											<li><i>关于我们：</i><a href="https://www.linkease.com/about/" target="_blank"><em><u>[易有云]</u></em></a></li>													
                                         </div>
                                         <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0"
                                             bordercolor="#6b8fa3" class="FormTable">
@@ -685,20 +685,22 @@ var PROTOCOL = "cifs";
                                                     <a type="button" id="linkease_guide" class="linkease_btn"
                                                         target="_blank">配置中心</a>
                                                     <a type="button" id="linkease_website" class="linkease_btn" href=""
-                                                        target="_blank">访问LinkEase</a>
+                                                        target="_blank">访问易有云</a>
                                                 </td>
                                             </tr>
                                         </table>
                                         <div class="linkease_msg">
-                                            <i>使用事项：</i>
+                                            <i>使用流程：</i>
                                             <div class="linkease_msg_info">
-                                                <li>使用易有云2.0 APP注册LinkEase账号</li>
-                                                <li>启用插件后,可使用易有云APP进行扫描局域网设备并绑定</li>
-                                                <li>点击上方"配置中心"按钮,进入易有云2.0的配置页面,并登录您的易有云2.0账号</li>
-                                                <li>登录后进入配置界面，设置设备的名称和存储路径。</li>
-                                                <li>如需恢复至旧配置则在配置界面选择相应设备</li>
-                                                <li>确保无误后点击绑定，成功后会提示已绑定。</li>
-                                                <li>至此,您可使用易有云2.0的APP或客户端选择绑定的设备并使用</li>
+                                                <li>注册帐号：下载易有云客户端注册帐号。<a href="https://www.linkease.com/download/" target="_blank"><em><u>[点我全平台下载]</u></em></a></li>
+                                                <li>启动插件：打开上方开关按钮后点击提交。</li>
+												<li>先插入移动硬盘，并推荐格式化为 EXT3/EXT4 的文件分区，更多请查看<a href="https://doc.linkease.com/zh/guide/linkease/install/device/koolcenter_merlin.html" target="_blank"><em><u>[使用教程]</u></em></a>。</li>
+                                                <li>绑定设备：</li>
+												  <ul>方式一：点击上方"配置中心"按钮，进入易有云的配置页面，并登录您的易有云账号。</ul>
+												  <ul>方式二：使用易有云APP进行扫描局域网设备并绑定。</ul>
+                                                <li>配置网盘：登录后进入配置界面，设置网盘名称和网盘位置。</li>
+                                                <li>绑定成功：确保配置无误后点击确定，成功后会提示已绑定。</li>
+                                                <li>至此，您可使用易有云的APP或电脑客户端，选择绑定的设备并使用。</li>
                                             </div>
                                         </div>
                                         <div style="margin:30px 0 10px 5px;" class="splitLine"></div>
