@@ -114,8 +114,8 @@ var PROTOCOL = "cifs";
         var noChange_status = 0;
         var _responseLen;
         var r_lan_ipaddr = "<% nvram_get(lan_ipaddr); %>"
-        var params_check = ["linkease_enable"];
-        var params_input = ["linkease_token", "linkease_dir"];
+        var params_check = ["linkease_enable","linkease_simple"];
+        var params_input = [];
         var dbus = {}
 
         function init() {
@@ -664,6 +664,25 @@ var PROTOCOL = "cifs";
                                                     <div class="switch_field" style="display:table-cell;float: left;">
                                                         <label for="linkease_enable">
                                                             <input id="linkease_enable" class="switch" type="checkbox"
+                                                                style="display: none;">
+                                                            <div class="switch_container">
+                                                                <div class="switch_bar"></div>
+                                                                <div class="switch_circle transition_style">
+                                                                    <div></div>
+                                                                </div>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                            </tr>
+											<tr>
+                                                <th>
+                                                    <label>精简版（内存小于512M推荐）</label>
+                                                </th>
+                                                <td colspan="2">
+                                                    <div class="switch_field" style="display:table-cell;float: left;">
+                                                        <label for="linkease_simple">
+                                                            <input id="linkease_simple" class="switch" type="checkbox"
                                                                 style="display: none;">
                                                             <div class="switch_container">
                                                                 <div class="switch_bar"></div>
