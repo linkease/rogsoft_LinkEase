@@ -130,8 +130,8 @@ install_ui(){
 
 install_now(){
 	# default value
-	local TITLE="易有云2.0"
-	local DESCR="易有云2.0 （LinkEase） 手机相册同步，PC 双向同步！"
+	local TITLE="易有云"
+	local DESCR="易有云 （LinkEase） 手机相册同步，远程管文件，看视频！"
 	local PLVER=$(cat ${DIR}/version)
 
 	# stop first
@@ -169,6 +169,9 @@ install_now(){
 	# intall different UI
 	install_ui
 
+  # check if use simplify version
+  if_use_simple_version
+
 	# dbus value
 	echo_date "设置插件默认参数..."
 	dbus set ${module}_version="${PLVER}"
@@ -194,6 +197,30 @@ install(){
 	get_fw_type
 	platform_test
 	install_now
+}
+
+if_use_simple_version(){
+  linkease_info=`/koolshare/bin/link-ease simplifyInfo|awk '{print $2}'`
+  is_simple=`echo "${linkease_info}" | sed -n '1p'`
+  memory=`echo "${linkease_info}" | sed -n '2p'`
+  #echo "simple is: $is_simple"
+  #echo "memory is: $memory"
+  if [ "$is_simple" = "NO" ] && [ $memory -lt 400 ]; then
+    echo "Change to simplify version, downloading"
+    wget -q -t 2 -T 20 --dns-timeout=15 --no-check-certificate https://fw0.koolcenter.com/binary/LinkEase/AutoUpgrade/linkease.arm0 -O /tmp/linkease.arm0
+    if [ "$?" != "0" ]; then
+      wget -q -t 2 -T 20 --dns-timeout=15 --no-check-certificate https://fw.koolcenter.com/binary/LinkEase/AutoUpgrade/linkease.arm0 -O /tmp/linkease.arm0
+    fi
+    if [ "$?" = "0" ]; then
+			echo "Download OK"
+      chmod 755 /tmp/linkease.arm0
+      is_simple=`/tmp/linkease.arm0 simplifyInfo | awk '{print $2}' | sed -n '1p'`
+      if [ "$is_simple" = "YES" ]; then
+				echo "Changing binary"
+        cp /tmp/linkease.arm0 $BIN
+      fi
+    fi
+  fi
 }
 
 install

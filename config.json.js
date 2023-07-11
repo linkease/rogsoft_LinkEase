@@ -1,8 +1,8 @@
 {
-    "description": "易有云2.0 （LinkEase） 手机相册同步，远程管文件，看视频！", 
+    "description": "易有云 （LinkEase） 手机相册同步，远程管文件，看视频！", 
     "home_url": "Module_linkease.asp", 
-    "md5": "51426811a69024de0a057c6e0d30bffa", 
+    "md5": "a2ef76538ed1e6e0bf6015e4429646a9", 
     "module": "linkease", 
-    "title": "易有云2.0", 
-    "version": "2.11.9"
+    "title": "易有云", 
+    "version": "2.12.0"
 }

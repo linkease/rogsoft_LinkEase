@@ -4,8 +4,8 @@ source /koolshare/scripts/base.sh
 linkease_status=`pidof link-ease`
 linkease_pid=`ps | grep -w link-ease | grep -v grep | awk '{print $1}'`
 linkease_info=`/koolshare/bin/link-ease simplifyInfo|awk '{print $2}'`
-linkease_ver=`echo ${linkease_info} | awk 'NR==3'`
-linkease_simple=`echo ${linkease_info} | awk 'NR==1'`
+linkease_ver=`echo "${linkease_info}" | sed -n '3p'`
+linkease_simple=`echo "${linkease_info}" | sed -n '1p'`
 if [ "$linkease_simple" = "YES" ]; then
   linkease_msg="精简版"
 else
