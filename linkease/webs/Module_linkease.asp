@@ -1,7 +1,6 @@
 ﻿<!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -21,11 +20,10 @@
     <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
     <script language="JavaScript" type="text/javascript" src="/help.js"></script>
     <script language="JavaScript" type="text/javascript" src="/general.js"></script>
-    <script type="text/javascript" src="/js/jquery.js"></script>
-    <script type="text/javascript" src="/disk_functions.js"></script>
-    <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
-    <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
-    <script type="text/javascript" src="/res/softcenter.js"></script>
+    <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
+    <script language="JavaScript" type="text/javascript" src="/disk_functions.js"></script>
+    <script language="JavaScript" type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
+    <script language="JavaScript" type="text/javascript" src="/res/softcenter.js"></script>
     <style>
         .mask_bg {
             position: absolute;
