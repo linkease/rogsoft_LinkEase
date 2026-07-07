@@ -15,12 +15,41 @@
     <link rel="stylesheet" type="text/css" href="ParentalControl.css">
     <link rel="stylesheet" type="text/css" href="css/element.css">
     <link rel="stylesheet" type="text/css" href="res/softcenter.css">
+    <script>
+        (function () {
+            window.__linkease_amd_define_exists = Object.prototype.hasOwnProperty.call(window, "define");
+            window.__linkease_amd_define = window.define;
+            if (window.define && window.define.amd) {
+                window.define = undefined;
+            }
+        })();
+    </script>
+    <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
+    <script>
+        (function () {
+            if (window.__linkease_amd_define_exists) {
+                window.define = window.__linkease_amd_define;
+            } else {
+                try {
+                    delete window.define;
+                } catch (e) {
+                    window.define = undefined;
+                }
+            }
+            try {
+                delete window.__linkease_amd_define;
+                delete window.__linkease_amd_define_exists;
+            } catch (e) {
+                window.__linkease_amd_define = undefined;
+                window.__linkease_amd_define_exists = undefined;
+            }
+        })();
+    </script>
     <script language="JavaScript" type="text/javascript" src="/state.js"></script>
     <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
     <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
     <script language="JavaScript" type="text/javascript" src="/help.js"></script>
     <script language="JavaScript" type="text/javascript" src="/general.js"></script>
-    <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
     <script language="JavaScript" type="text/javascript" src="/disk_functions.js"></script>
     <script language="JavaScript" type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
     <script language="JavaScript" type="text/javascript" src="/res/softcenter.js"></script>
