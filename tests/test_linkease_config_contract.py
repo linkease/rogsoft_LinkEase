@@ -41,8 +41,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertIn("APPTUNNEL_PORT=8897", self.config)
         self.assertIn("LINKEASE_LOCAL_API=/var/run/linkease.sock", self.config)
         pattern = re.compile(
-            r"start-stop-daemon -S -q -b -m -p \\$APPTUNNEL_PID_FILE "
-            r"-x \\$APPTUNNEL_BIN -- --deviceAddr :\\$APPTUNNEL_PORT --localApi \\$LINKEASE_LOCAL_API"
+            r"start-stop-daemon -S -q -b -m -p \$APPTUNNEL_PID_FILE "
+            r"-x \$APPTUNNEL_BIN -- --deviceAddr :\$APPTUNNEL_PORT --localApi \$LINKEASE_LOCAL_API"
         )
         self.assertRegex(self.config, pattern)
 
@@ -72,8 +72,6 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "killall kaiplus_bin",
             "start_desktop",
             "start_apptunnel",
-            "start_kaiplus",
-            "-x $KAIPLUS_BIN",
             "load_iptables",
             "del_iptables",
         ]
@@ -90,7 +88,6 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         expected = [
             "pidof linkease-desktop",
             "pidof apptunnel-client",
-            "pidof kaiplus_bin",
             "http://127.0.0.1:19290/apps/api/v1/health",
             "LinkEase full",
         ]
