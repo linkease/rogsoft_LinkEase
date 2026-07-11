@@ -59,6 +59,12 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         for marker in markers:
             self.assertIn(marker, self.config)
 
+        linkease_index = self.config.index('if [ -n "$linkease_data_disk" ] && [ -d "$linkease_data_disk" ]; then')
+        betterapps_index = self.config.index('if [ -n "$betterapps_data_disk" ] && [ -d "$betterapps_data_disk" ]; then')
+        bootstrap_index = self.config.index('LINKEASE_DATA_ROOT=${APP_DIR}/data/bootstrap')
+        self.assertLess(linkease_index, betterapps_index)
+        self.assertLess(betterapps_index, bootstrap_index)
+
     def test_process_lifecycle_manages_desktop_apptunnel_and_kaiplus(self):
         expected = [
             "killall linkease-desktop",
@@ -66,6 +72,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "killall kaiplus_bin",
             "start_desktop",
             "start_apptunnel",
+            "start_kaiplus",
+            "-x $KAIPLUS_BIN",
             "load_iptables",
             "del_iptables",
         ]
@@ -82,6 +90,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         expected = [
             "pidof linkease-desktop",
             "pidof apptunnel-client",
+            "pidof kaiplus_bin",
             "http://127.0.0.1:19290/apps/api/v1/health",
             "LinkEase full",
         ]
