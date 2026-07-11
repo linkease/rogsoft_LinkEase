@@ -86,8 +86,8 @@ class InstallUninstallContractTest(unittest.TestCase):
 
     def test_uninstall_removes_full_linkease_and_betterapps_leftovers(self):
         expected = [
-            "killall ${DESKTOP_BIN}",
-            "killall ${APPTUNNEL_BIN}",
+            "killall linkease-desktop",
+            "killall apptunnel-client",
             "killall kaiplus_bin",
             "rm -rf /koolshare/bin/linkease-desktop",
             "rm -rf /koolshare/bin/apptunnel-client",
