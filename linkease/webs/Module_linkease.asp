@@ -213,15 +213,21 @@ var PROTOCOL = "cifs";
 
         function generate_link() {
             var webite = E("linkease_website");  //访问linkease
-            var guide = E("linkease_guide");    //配置中心
-            webite.href = "http://" + r_lan_ipaddr + ":8897";
-            guide.href = "http://" + r_lan_ipaddr + ":8897/guide/index.html";
+            var linkease_guide = E("linkease_guide");    //配置中心
+            var legacy = E("linkease_legacy");  //旧版入口
+            var full_url = "/apps/";
+            var legacy_url = "http://" + r_lan_ipaddr + ":8897";
+            webite.href = full_url;
+            linkease_guide.href = full_url;
+            legacy.href = legacy_url;
             if (dbus["linkease_enable"] != "1") {
                 webite.style.display = "none";
-                guide.style.display = "none";
+                linkease_guide.style.display = "none";
+                legacy.style.display = "none";
             } else {
                 webite.style.display = "";
-                guide.style.display = "";
+                linkease_guide.style.display = "";
+                legacy.style.display = "";
             }
         }
         function get_status() {
@@ -731,7 +737,9 @@ var PROTOCOL = "cifs";
                                                     <a type="button" id="linkease_guide" class="linkease_btn"
                                                         target="_blank">配置中心</a>
                                                     <a type="button" id="linkease_website" class="linkease_btn" href=""
-                                                        target="_blank">访问易有云</a>
+                                                        target="_blank">打开LinkEase</a>
+                                                    <a type="button" id="linkease_legacy" class="linkease_btn" href=""
+                                                        target="_blank">旧版入口</a>
                                                 </td>
                                             </tr>
                                         </table>

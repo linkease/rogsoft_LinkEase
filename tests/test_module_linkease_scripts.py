@@ -32,6 +32,22 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
 
         self.assertRegex(self.html, guard_pattern)
 
+    def test_full_ui_primary_entry_uses_apps_proxy(self):
+        self.assertIn('var full_url = "/apps/";', self.html)
+        self.assertIn('webite.href = full_url;', self.html)
+        self.assertIn('id="linkease_website"', self.html)
+        self.assertIn('打开LinkEase', self.html)
+
+    def test_legacy_8897_entry_is_kept(self):
+        self.assertIn('var legacy_url = "http://" + r_lan_ipaddr + ":8897";', self.html)
+        self.assertIn('legacy.href = legacy_url;', self.html)
+        self.assertIn('id="linkease_legacy"', self.html)
+        self.assertIn('旧版入口', self.html)
+
+    def test_config_center_uses_apps_not_legacy_guide(self):
+        self.assertNotIn(':8897/guide/index.html', self.html)
+        self.assertIn('linkease_guide.href = full_url;', self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
