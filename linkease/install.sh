@@ -7,6 +7,9 @@ FW_TYPE_CODE=
 FW_TYPE_NAME=
 DIR=$(cd $(dirname $0); pwd)
 module=${DIR##*/}
+DESKTOP_BIN=linkease-desktop
+APPTUNNEL_BIN=apptunnel-client
+APP_DIR=/koolshare/linkease
 
 get_model(){
 	local ODMPID=$(nvram get odmpid)
@@ -37,6 +40,18 @@ get_fw_type() {
 			FW_TYPE_NAME="华硕官方固件"
 		fi
 	fi
+}
+
+platform_arch_test(){
+	local ARCH=$(uname -m)
+	case "${ARCH}" in
+		aarch64|arm64)
+			;;
+		*)
+			echo_date "LinkEase full首版仅支持arm64/aarch64"
+			exit_install 1
+			;;
+	esac
 }
 
 platform_test(){
@@ -128,6 +143,54 @@ install_ui(){
 	fi
 }
 
+remove_betterapps_legacy(){
+	find /koolshare/init.d -name "*betterapps.sh" | xargs rm -rf >/dev/null 2>&1
+	find /koolshare/init.d -name "*BetterApps.sh" | xargs rm -rf >/dev/null 2>&1
+	rm -rf /koolshare/bin/betterapps >/dev/null 2>&1
+	rm -rf /koolshare/bin/BetterApps >/dev/null 2>&1
+	rm -rf /koolshare/bin/betterapps-plugins >/dev/null 2>&1
+	rm -rf /koolshare/bin/BetterApps-plugins >/dev/null 2>&1
+	rm -rf /koolshare/betterapps >/dev/null 2>&1
+	rm -rf /koolshare/res/icon-betterapps.png >/dev/null 2>&1
+	rm -rf /koolshare/res/icon-BetterApps.png >/dev/null 2>&1
+	rm -rf /koolshare/scripts/betterapps*.sh >/dev/null 2>&1
+	rm -rf /koolshare/scripts/BetterApps*.sh >/dev/null 2>&1
+	rm -rf /koolshare/webs/Module_betterapps.asp >/dev/null 2>&1
+	rm -rf /koolshare/webs/Module_BetterApps.asp >/dev/null 2>&1
+	rm -rf /koolshare/scripts/uninstall_betterapps.sh >/dev/null 2>&1
+	rm -rf /koolshare/scripts/uninstall_BetterApps.sh >/dev/null 2>&1
+	rm -rf /tmp/betterapps* >/dev/null 2>&1
+	rm -rf /tmp/BetterApps* >/dev/null 2>&1
+	dbus remove betterapps_enable >/dev/null 2>&1
+	dbus remove BetterApps_enable >/dev/null 2>&1
+	dbus remove softcenter_module_betterapps_install >/dev/null 2>&1
+	dbus remove softcenter_module_betterapps_version >/dev/null 2>&1
+	dbus remove softcenter_module_betterapps_name >/dev/null 2>&1
+	dbus remove softcenter_module_betterapps_title >/dev/null 2>&1
+	dbus remove softcenter_module_betterapps_description >/dev/null 2>&1
+	dbus remove softcenter_module_BetterApps_install >/dev/null 2>&1
+	dbus remove softcenter_module_BetterApps_version >/dev/null 2>&1
+	dbus remove softcenter_module_BetterApps_name >/dev/null 2>&1
+	dbus remove softcenter_module_BetterApps_title >/dev/null 2>&1
+	dbus remove softcenter_module_BetterApps_description >/dev/null 2>&1
+}
+
+migrate_dbus_value_if_empty(){
+	local FROM_KEY=$1
+	local TO_KEY=$2
+	local FROM_VALUE=$(dbus get ${FROM_KEY})
+	local TO_VALUE=$(dbus get ${TO_KEY})
+	if [ -z "${TO_VALUE}" -a -n "${FROM_VALUE}" ];then
+		dbus set ${TO_KEY}="${FROM_VALUE}"
+	fi
+}
+
+migrate_betterapps_dbus(){
+	migrate_dbus_value_if_empty betterapps_data_disk linkease_data_disk
+	migrate_dbus_value_if_empty betterapps_data_root_parent linkease_data_root_parent
+	migrate_dbus_value_if_empty betterapps_data_root linkease_data_root
+}
+
 install_now(){
 	# default value
 	local TITLE="易有云"
@@ -138,11 +201,22 @@ install_now(){
 	local ENABLE=$(dbus get ${module}_enable)
 	if [ "${ENABLE}" == "1" -o -n "$(pidof link-ease)" ];then
 		echo_date "安装前先关闭${TITLE}插件，以保证更新成功！"
-		killall	link-ease > /dev/null 2>&1
+		killall link-ease > /dev/null 2>&1
+	fi
+	if [ "${ENABLE}" == "1" -o -n "$(pidof ${DESKTOP_BIN})" ];then
+		killall ${DESKTOP_BIN} > /dev/null 2>&1
+	fi
+	if [ "${ENABLE}" == "1" -o -n "$(pidof ${APPTUNNEL_BIN})" ];then
+		killall ${APPTUNNEL_BIN} > /dev/null 2>&1
+	fi
+	if [ "${ENABLE}" == "1" -o -n "$(pidof kaiplus_bin)" ];then
+		killall kaiplus_bin > /dev/null 2>&1
 	fi
 
 	# remove some file first
 	find /koolshare/init.d -name "*linkease.sh" | xargs rm -rf >/dev/null 2>&1
+	migrate_betterapps_dbus
+	remove_betterapps_legacy
 
 	# isntall file
 	echo_date "安装插件相关文件..."
@@ -152,11 +226,21 @@ install_now(){
 	cp -rf /tmp/${module}/scripts/* /koolshare/scripts/
 	cp -rf /tmp/${module}/webs/* /koolshare/webs/
 	cp -rf /tmp/${module}/uninstall.sh /koolshare/scripts/uninstall_${module}.sh
+	if [ -d "/tmp/${module}/kaiplus" ];then
+		rm -rf /koolshare/linkease/kaiplus
+		mkdir -p /koolshare/linkease
+		cp -rf /tmp/${module}/kaiplus /koolshare/linkease/
+	fi
 
 	# Permissions
 	chmod 755 /koolshare/scripts/${module}_*.sh >/dev/null 2>&1
-	chmod 755 /koolshare/bin/link-ease >/dev/null 2>&1
+	chmod 755 /koolshare/bin/${DESKTOP_BIN} >/dev/null 2>&1
+	chmod 755 /koolshare/bin/${APPTUNNEL_BIN} >/dev/null 2>&1
+	chmod 755 /koolshare/bin/link-ease >/dev/null 2>&1 || true
 	chmod 755 /koolshare/bin/linkease-plugins/aria2.sh >/dev/null 2>&1
+	chmod 755 /koolshare/linkease/kaiplus/bin/kaiplus_bin >/dev/null 2>&1 || true
+	chmod 755 /koolshare/linkease/kaiplus/helpers/kaiplus_workspace_tool >/dev/null 2>&1 || true
+	find /koolshare/linkease/kaiplus/defaults -type f -path '*/scripts/*' -exec chmod 755 {} \; >/dev/null 2>&1 || true
 
 	# make start up script link
 	if [ ! -L "/koolshare/init.d/S99${module}.sh" -a -f "/koolshare/scripts/${module}_config.sh" ];then
@@ -168,9 +252,6 @@ install_now(){
 	
 	# intall different UI
 	install_ui
-
-  # check if use simplify version
-  if_use_simple_version
 
 	# dbus value
 	echo_date "设置插件默认参数..."
@@ -196,31 +277,8 @@ install(){
 	get_model
 	get_fw_type
 	platform_test
+	platform_arch_test
 	install_now
-}
-
-if_use_simple_version(){
-  linkease_info=`/koolshare/bin/link-ease simplifyInfo|awk '{print $2}'`
-  is_simple=`echo "${linkease_info}" | sed -n '1p'`
-  memory=`echo "${linkease_info}" | sed -n '2p'`
-  #echo "simple is: $is_simple"
-  #echo "memory is: $memory"
-  if [ "$is_simple" = "NO" ] && [ $memory -lt 400 ]; then
-    echo "Change to simplify version, downloading"
-    wget -q -t 2 -T 20 --dns-timeout=15 --no-check-certificate https://fw0.koolcenter.com/binary/LinkEase/AutoUpgrade/linkease.arm0 -O /tmp/linkease.arm0
-    if [ "$?" != "0" ]; then
-      wget -q -t 2 -T 20 --dns-timeout=15 --no-check-certificate https://fw.koolcenter.com/binary/LinkEase/AutoUpgrade/linkease.arm0 -O /tmp/linkease.arm0
-    fi
-    if [ "$?" = "0" ]; then
-			echo "Download OK"
-      chmod 755 /tmp/linkease.arm0
-      is_simple=`/tmp/linkease.arm0 simplifyInfo | awk '{print $2}' | sed -n '1p'`
-      if [ "$is_simple" = "YES" ]; then
-				echo "Changing binary"
-        cp /tmp/linkease.arm0 $BIN
-      fi
-    fi
-  fi
 }
 
 install
