@@ -163,6 +163,8 @@ remove_betterapps_legacy(){
 	rm -rf /tmp/BetterApps* >/dev/null 2>&1
 	dbus remove betterapps_enable >/dev/null 2>&1
 	dbus remove BetterApps_enable >/dev/null 2>&1
+	dbus remove betterapps_version >/dev/null 2>&1
+	dbus remove BetterApps_version >/dev/null 2>&1
 	dbus remove softcenter_module_betterapps_install >/dev/null 2>&1
 	dbus remove softcenter_module_betterapps_version >/dev/null 2>&1
 	dbus remove softcenter_module_betterapps_name >/dev/null 2>&1

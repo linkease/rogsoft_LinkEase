@@ -47,6 +47,8 @@ rm -rf /tmp/BetterApps*
 
 dbus remove betterapps_enable
 dbus remove BetterApps_enable
+dbus remove betterapps_version
+dbus remove BetterApps_version
 dbus remove softcenter_module_betterapps_install
 dbus remove softcenter_module_betterapps_version
 dbus remove softcenter_module_betterapps_name
@@ -59,6 +61,7 @@ dbus remove softcenter_module_BetterApps_title
 dbus remove softcenter_module_BetterApps_description
 
 dbus remove linkease_enable
+dbus remove linkease_version
 dbus remove softcenter_module_linkease_install
 dbus remove softcenter_module_linkease_version
 dbus remove softcenter_module_linkease_name

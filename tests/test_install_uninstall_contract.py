@@ -55,6 +55,8 @@ class InstallUninstallContractTest(unittest.TestCase):
             "softcenter_module_BetterApps",
             "betterapps_enable",
             "BetterApps_enable",
+            "dbus remove betterapps_version",
+            "dbus remove BetterApps_version",
         ]
         for item in expected:
             self.assertIn(item, self.install)
@@ -97,6 +99,9 @@ class InstallUninstallContractTest(unittest.TestCase):
             "rm -rf /koolshare/betterapps",
             "dbus remove betterapps_enable",
             "dbus remove BetterApps_enable",
+            "dbus remove linkease_version",
+            "dbus remove betterapps_version",
+            "dbus remove BetterApps_version",
         ]
         for item in expected:
             self.assertIn(item, self.uninstall)
