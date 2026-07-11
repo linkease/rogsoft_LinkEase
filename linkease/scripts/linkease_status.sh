@@ -1,18 +1,30 @@
-#! /bin/sh
-source /koolshare/scripts/base.sh
+#!/bin/sh
 
-linkease_status=`pidof link-ease`
-linkease_pid=`ps | grep -w link-ease | grep -v grep | awk '{print $1}'`
-linkease_info=`/koolshare/bin/link-ease simplifyInfo|awk '{print $2}'`
-linkease_ver=`echo "${linkease_info}" | sed -n '3p'`
-linkease_simple=`echo "${linkease_info}" | sed -n '1p'`
-if [ "$linkease_simple" = "YES" ]; then
-  linkease_msg="精简版"
-else
-  linkease_msg="完整版"
+desktop_pid="$(pidof linkease-desktop)"
+apptunnel_pid="$(pidof apptunnel-client)"
+health_url="http://127.0.0.1:19290/apps/api/v1/health"
+
+if [ -z "$desktop_pid" ] && [ -z "$apptunnel_pid" ]; then
+	echo "LinkEase full 未运行"
+	exit 0
 fi
-if [ -n "$linkease_status" ];then
-    http_response  "进程运行正常！是${linkease_msg}，版本号：${linkease_ver}（PID：${linkease_pid}）"
+
+if [ -z "$desktop_pid" ]; then
+	echo "【警告】：LinkEase full 主服务未运行，apptunnel-client 运行中"
+	exit 0
+fi
+
+if [ -z "$apptunnel_pid" ]; then
+	echo "【警告】：LinkEase full 主服务运行中，旧版8897入口未运行"
+	exit 0
+fi
+
+if command -v curl >/dev/null 2>&1; then
+	if curl -fsS --connect-timeout 2 "$health_url" >/dev/null 2>&1; then
+		echo "LinkEase full 运行正常，/apps/ 与8897入口已启动"
+	else
+		echo "LinkEase full 进程运行中，/apps/ 健康检查未就绪"
+	fi
 else
-    http_response  "【警告】：进程未运行！版本：${linkease_ver}"
+	echo "LinkEase full 进程运行中，未找到curl，跳过/apps/健康检查"
 fi
