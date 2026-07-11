@@ -77,6 +77,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.config)
+        self.assertNotIn("start_kaiplus", self.config)
+        self.assertNotIn("-x $KAIPLUS_BIN", self.config)
 
     def test_apps_forward_is_linkease_owned(self):
         self.assertIn('APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"', self.config)
