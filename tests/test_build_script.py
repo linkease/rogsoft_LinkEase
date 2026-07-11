@@ -13,6 +13,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildScriptTest(unittest.TestCase):
+    def load_build_module(self):
+        spec = importlib.util.spec_from_file_location("linkease_build", ROOT / "build.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
     def test_build_script_compiles_with_python3(self):
         py_compile.compile(str(ROOT / "build.py"), doraise=True)
 
@@ -31,9 +37,7 @@ class BuildScriptTest(unittest.TestCase):
         )
 
     def test_build_module_can_stage_full_artifacts_from_directory(self):
-        spec = importlib.util.spec_from_file_location("linkease_build", ROOT / "build.py")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = self.load_build_module()
 
         with tempfile.TemporaryDirectory() as temp:
             temp_root = Path(temp) / "repo"
@@ -77,6 +81,46 @@ class BuildScriptTest(unittest.TestCase):
             self.assertIn("linkease/bin/apptunnel-client", names)
             self.assertIn("linkease/kaiplus/bin/kaiplus_bin", names)
             self.assertIn("linkease/kaiplus/defaults/router/scripts/start.sh", names)
+
+    def test_build_module_rejects_path_traversal_module_name(self):
+        module = self.load_build_module()
+
+        with tempfile.TemporaryDirectory() as temp:
+            temp_root = Path(temp) / "repo"
+            temp_root.mkdir()
+            (temp_root / "config.json.js").write_text(
+                json.dumps({"module": "../escape", "version": "1.0.0"}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "module must be a simple directory name"):
+                module.build_module(root=temp_root, skip_download=True)
+
+            self.assertFalse((Path(temp) / "escape.tar.gz").exists())
+            self.assertFalse((temp_root / "../escape.tar.gz").resolve().exists())
+
+    def test_build_module_raises_when_config_lacks_module(self):
+        module = self.load_build_module()
+
+        with tempfile.TemporaryDirectory() as temp:
+            temp_root = Path(temp)
+            (temp_root / "config.json.js").write_text(json.dumps({"version": "1.0.0"}), encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "module"):
+                module.build_module(root=temp_root, skip_download=True)
+
+    def test_build_module_raises_when_module_directory_is_missing(self):
+        module = self.load_build_module()
+
+        with tempfile.TemporaryDirectory() as temp:
+            temp_root = Path(temp)
+            (temp_root / "config.json.js").write_text(
+                json.dumps({"module": "missing", "version": "1.0.0"}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(FileNotFoundError):
+                module.build_module(root=temp_root, skip_download=True)
 
 
 if __name__ == "__main__":

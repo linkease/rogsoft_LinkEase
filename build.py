@@ -57,6 +57,19 @@ def stage_full_artifacts(module_dir, artifact_dir):
         if script.is_file():
             make_executable(script)
 
+def validate_module_name(module):
+    module = str(module or "").strip()
+    if (
+        not module
+        or module in (".", "..")
+        or "/" in module
+        or "\\" in module
+        or Path(module).is_absolute()
+        or Path(module).name != module
+    ):
+        raise ValueError("module must be a simple directory name")
+    return module
+
 def get_or_create(root=None):
     root = Path(root or parent_path)
     conf_path = root / "config.json.js"
@@ -78,25 +91,24 @@ def build_module(root=None, artifact_dir=None, full_artifact_url=None, full_arti
     root = Path(root or parent_path)
     try:
         conf = get_or_create(root)
-    except:
+    except json.JSONDecodeError:
         print("config.json.js file format is incorrect")
         traceback.print_exc()
-        return
+        raise
     if "module" not in conf:
-        print(" module is not in config.json.js")
-        return
+        raise ValueError("module is not in config.json.js")
+    module = validate_module_name(conf["module"])
+    conf["module"] = module
     if full_artifact_url:
         conf["full_artifact_url"] = full_artifact_url
     if full_artifact_sha256:
         conf["full_artifact_sha256"] = full_artifact_sha256
-    module_path = root / conf["module"]
+    module_path = root / module
     if not module_path.is_dir():
-        print("not found %s dir，check config.json.js is module ?" % module_path)
-        return
+        raise FileNotFoundError("not found %s dir，check config.json.js is module ?" % module_path)
     install_path = module_path / "install.sh"
     if not install_path.is_file():
-        print("not found %s file，check install.sh file")
-        return
+        raise FileNotFoundError("not found %s file，check install.sh file" % install_path)
     print("build...")
 
     if artifact_dir:
@@ -107,17 +119,17 @@ def build_module(root=None, artifact_dir=None, full_artifact_url=None, full_arti
     with open(module_path / "version", "w", encoding="utf-8") as fw:
         fw.write(conf["version"] + "\n")
 
-    tar_path = root / (conf["module"] + ".tar.gz")
+    tar_path = root / (module + ".tar.gz")
     if tar_path.exists():
         tar_path.unlink()
     with tarfile.open(tar_path, "w:gz") as tf:
-        tf.add(module_path, arcname=conf["module"])
+        tf.add(module_path, arcname=module)
     conf["md5"] = md5sum(tar_path)
     conf_path = root / "config.json.js"
     with open(conf_path, "w", encoding="utf-8") as fw:
         json.dump(conf, fw, sort_keys = True, indent = 4, ensure_ascii=False)
         fw.write("\n")
-    print("build done", conf["module"] + ".tar.gz")
+    print("build done", module + ".tar.gz")
     #hook_path = os.path.join(parent_path, "backup.sh")
     #if os.path.isfile(hook_path):
     #    os.system(hook_path)
