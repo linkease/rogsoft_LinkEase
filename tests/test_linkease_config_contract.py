@@ -88,13 +88,27 @@ class LinkEaseConfigContractTest(unittest.TestCase):
 
     def test_status_checks_full_processes_and_health_endpoint(self):
         expected = [
+            "source /koolshare/scripts/base.sh",
             "pidof linkease-desktop",
             "pidof apptunnel-client",
             "http://127.0.0.1:19290/apps/api/v1/health",
             "LinkEase full",
+            "http_response",
         ]
         for item in expected:
             self.assertIn(item, self.status)
+
+    def test_iptables_cleanup_is_busybox_safe(self):
+        expected = [
+            "clean_iptables_port()",
+            "iptables -D INPUT -p tcp --dport $1 -j ACCEPT",
+            "clean_iptables_port ${DESKTOP_PORT}",
+            "clean_iptables_port ${APPTUNNEL_PORT}",
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+        self.assertNotIn('grep "${DESKTOP_PORT}\\\\|${APPTUNNEL_PORT}"', self.config)
+        self.assertNotIn("linkease_clean_iptables.sh", self.config)
 
 
 if __name__ == "__main__":

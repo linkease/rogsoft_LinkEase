@@ -169,14 +169,22 @@ kill_ee(){
 	rm -f $DESKTOP_PID_FILE $APPTUNNEL_PID_FILE >/dev/null 2>&1
 }
 
+clean_iptables_port(){
+	while iptables -D INPUT -p tcp --dport $1 -j ACCEPT >/dev/null 2>&1; do
+		:
+	done
+}
+
 load_iptables(){
-	iptables -S | grep "${DESKTOP_PORT}\\|${APPTUNNEL_PORT}" | sed 's/-A/iptables -D/g' > /tmp/linkease_clean_iptables.sh && chmod 777 /tmp/linkease_clean_iptables.sh && /tmp/linkease_clean_iptables.sh && rm /tmp/linkease_clean_iptables.sh >/dev/null 2>&1
+	clean_iptables_port ${DESKTOP_PORT}
+	clean_iptables_port ${APPTUNNEL_PORT}
 	iptables -t filter -I INPUT -p tcp --dport ${DESKTOP_PORT} -j ACCEPT >/dev/null 2>&1
 	iptables -t filter -I INPUT -p tcp --dport ${APPTUNNEL_PORT} -j ACCEPT >/dev/null 2>&1
 }
 
 del_iptables(){
-	iptables -S | grep "${DESKTOP_PORT}\\|${APPTUNNEL_PORT}" | sed 's/-A/iptables -D/g' > /tmp/linkease_clean_iptables.sh && chmod 777 /tmp/linkease_clean_iptables.sh && /tmp/linkease_clean_iptables.sh && rm /tmp/linkease_clean_iptables.sh >/dev/null 2>&1
+	clean_iptables_port ${DESKTOP_PORT}
+	clean_iptables_port ${APPTUNNEL_PORT}
 }
 
 #=========================================================
