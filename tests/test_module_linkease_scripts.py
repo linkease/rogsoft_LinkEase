@@ -77,6 +77,10 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.html)
 
+    def test_edition_radio_group_is_not_read_as_single_input(self):
+        self.assertNotIn('E("linkease_edition").value', self.html)
+        self.assertNotIn('E(params_input[i]).value', self.html)
+
     def test_full_url_uses_proxy_or_direct_port(self):
         expected = [
             'function current_browser_origin()',

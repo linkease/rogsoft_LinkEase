@@ -168,11 +168,6 @@ var PROTOCOL = "cifs";
         }
 
         function conf_to_obj() {
-            for (var i = 0; i < params_input.length; i++) {
-                if (dbus[params_input[i]]) {
-                    E(params_input[i]).value = dbus[params_input[i]];
-                }
-            }
             // data from checkbox
             for (var i = 0; i < params_check.length; i++) {
                 if (dbus[params_check[i]]) {
@@ -208,11 +203,6 @@ var PROTOCOL = "cifs";
         }
 
         function save() {
-            for (var i = 0; i < params_input.length; i++) {
-                if (E(params_input[i])) {
-                    dbus[params_input[i]] = E(params_input[i]).value
-                }
-            }
             for (var i = 0; i < params_check.length; i++) {
                 dbus[params_check[i]] = E(params_check[i]).checked ? '1' : '0';
             }
