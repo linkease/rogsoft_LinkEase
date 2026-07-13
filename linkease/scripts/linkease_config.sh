@@ -13,6 +13,8 @@ APPTUNNEL_PORT=8897
 LINKEASE_LOCAL_API=/var/run/linkease.sock
 APP_DIR=/koolshare/linkease
 APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"
+LEGACY_BIN=/koolshare/bin/link-ease
+LINKEASE_ACTIVE_EDITION=
 
 export SERVER_HOST=0.0.0.0
 export SERVER_PORT=${DESKTOP_PORT}
@@ -89,6 +91,23 @@ resolve_linkease_data_disk(){
 	return 0
 }
 
+normalize_linkease_edition(){
+	case "$linkease_edition" in
+		standard|full|lite) echo "$linkease_edition" ;;
+		*) [ "$linkease_simple" = "1" ] && echo lite || echo standard ;;
+	esac
+}
+
+persist_active_edition(){
+	LINKEASE_ACTIVE_EDITION="$(normalize_linkease_edition)"
+	dbus set linkease_edition="$LINKEASE_ACTIVE_EDITION" >/dev/null 2>&1
+	if [ "$LINKEASE_ACTIVE_EDITION" = "lite" ]; then
+		dbus set linkease_simple=1 >/dev/null 2>&1
+	else
+		dbus set linkease_simple=0 >/dev/null 2>&1
+	fi
+}
+
 configure_data_paths(){
 	resolve_linkease_data_disk
 	persist_migrated_betterapps_disk
@@ -110,6 +129,7 @@ configure_data_paths(){
 	export TEMP_PATH=${LINKEASE_DATA_ROOT}/tmp
 }
 
+persist_active_edition
 configure_data_paths
 
 normalize_kaiplus_port(){
@@ -151,11 +171,21 @@ schedule_httpd_restart(){
 
 ensure_apps_forward(){
 	current_forward="$(nvram get apps_port_forward 2>/dev/null)"
-	[ "$current_forward" = "$APPS_PORT_FORWARD" ] && return 0
-	nvram set apps_port_forward="$APPS_PORT_FORWARD" >/dev/null 2>&1 || return 1
-	nvram commit >/dev/null 2>&1 || return 1
-	logger "[软件中心]: 初始化LinkEase访问入口，稍后重启httpd！"
-	schedule_httpd_restart
+	if [ "$current_forward" = "$APPS_PORT_FORWARD" ]; then
+		dbus set linkease_apps_proxy_supported=1 >/dev/null 2>&1
+		dbus set linkease_apps_proxy_hint="" >/dev/null 2>&1
+		return 0
+	fi
+	if nvram set apps_port_forward="$APPS_PORT_FORWARD" >/dev/null 2>&1 && nvram commit >/dev/null 2>&1; then
+		dbus set linkease_apps_proxy_supported=1 >/dev/null 2>&1
+		dbus set linkease_apps_proxy_hint="" >/dev/null 2>&1
+		logger "[软件中心]: 初始化LinkEase访问入口，稍后重启httpd！"
+		schedule_httpd_restart
+		return 0
+	fi
+	dbus set linkease_apps_proxy_supported=0 >/dev/null 2>&1
+	dbus set linkease_apps_proxy_hint="当前系统 httpd 不支持 /apps/ 反向代理，建议升级系统到最新版本。" >/dev/null 2>&1
+	return 0
 }
 
 start_desktop(){
@@ -166,7 +196,15 @@ start_apptunnel(){
 	start-stop-daemon -S -q -b -m -p $APPTUNNEL_PID_FILE -x $APPTUNNEL_BIN -- --deviceAddr :$APPTUNNEL_PORT --localApi $LINKEASE_LOCAL_API
 }
 
-start_ee(){
+start_standard(){
+	ensure_dirs || return 1
+	kill_ee
+	start-stop-daemon -S -q -b -x $LEGACY_BIN
+	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
+	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
+}
+
+start_full(){
 	ensure_dirs || return 1
 	ensure_apps_forward || return 1
 	kill_ee
@@ -174,6 +212,25 @@ start_ee(){
 	start_apptunnel
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
+}
+
+start_lite(){
+	export LINKEASE_SIMPLE=1
+	start_standard
+}
+
+start_active_edition(){
+	case "$LINKEASE_ACTIVE_EDITION" in
+		standard)
+			start_standard
+			;;
+		full)
+			start_full
+			;;
+		lite)
+			start_lite
+			;;
+	esac
 }
 
 kill_ee(){
@@ -207,7 +264,7 @@ start)
 	if [ "$linkease_enable" == "1" ];then
 		logger "[软件中心]: 启动LinkEase插件！"
 		kill_ee
-		start_ee
+		start_active_edition
 		load_iptables
 	else
 		logger "[软件中心]: LinkEase插件未开启，不启动！"
@@ -219,7 +276,7 @@ start_nat)
 *)
 	if [ "$linkease_enable" == "1" ];then
 		kill_ee
-		start_ee
+		start_active_edition
 		load_iptables
 		http_response "$1"
 	else

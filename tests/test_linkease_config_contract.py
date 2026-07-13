@@ -151,6 +151,55 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertNotIn('grep "${DESKTOP_PORT}\\\\|${APPTUNNEL_PORT}"', self.config)
         self.assertNotIn("linkease_clean_iptables.sh", self.config)
 
+    def test_runtime_normalizes_standard_full_lite_editions(self):
+        expected = [
+            "normalize_linkease_edition()",
+            'standard|full|lite) echo "$linkease_edition" ;;',
+            '[ "$linkease_simple" = "1" ] && echo lite || echo standard',
+            'LINKEASE_ACTIVE_EDITION="$(normalize_linkease_edition)"',
+            'dbus set linkease_edition="$LINKEASE_ACTIVE_EDITION"',
+            'dbus set linkease_simple=1',
+            'dbus set linkease_simple=0',
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+
+    def test_runtime_has_separate_standard_full_lite_starters(self):
+        expected = [
+            "start_standard()",
+            "start_full()",
+            "start_lite()",
+            'case "$LINKEASE_ACTIVE_EDITION" in',
+            "standard)",
+            "full)",
+            "lite)",
+            "start_standard",
+            "start_full",
+            "start_lite",
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+
+    def test_full_reports_apps_proxy_support_and_lite_standard_do_not_start_full(self):
+        expected = [
+            "ensure_apps_forward()",
+            "dbus set linkease_apps_proxy_supported=1",
+            "dbus set linkease_apps_proxy_supported=0",
+            "dbus set linkease_apps_proxy_hint=",
+            "当前系统 httpd 不支持 /apps/ 反向代理",
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+
+        standard_block = re.search(r"start_standard\(\)\{([\s\S]*?)\n\}", self.config)
+        lite_block = re.search(r"start_lite\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(standard_block)
+        self.assertIsNotNone(lite_block)
+        self.assertNotIn("start_desktop", standard_block.group(1))
+        self.assertNotIn("start_apptunnel", standard_block.group(1))
+        self.assertNotIn("start_desktop", lite_block.group(1))
+        self.assertNotIn("start_apptunnel", lite_block.group(1))
+
 
 if __name__ == "__main__":
     unittest.main()
