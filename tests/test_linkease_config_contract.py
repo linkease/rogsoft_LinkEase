@@ -133,8 +133,21 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "pidof linkease-desktop",
             "pidof apptunnel-client",
             "http://127.0.0.1:19290/apps/api/v1/health",
-            "LinkEase full",
+            "LinkEase Full",
             "http_response",
+        ]
+        for item in expected:
+            self.assertIn(item, self.status)
+
+    def test_status_is_edition_aware(self):
+        expected = [
+            "eval `dbus export linkease`",
+            "normalize_linkease_edition()",
+            'case "$LINKEASE_ACTIVE_EDITION" in',
+            "LinkEase Standard",
+            "LinkEase Full",
+            "LinkEase Lite",
+            "当前系统未启用 /apps/ 反向代理，建议升级系统",
         ]
         for item in expected:
             self.assertIn(item, self.status)
