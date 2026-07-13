@@ -212,6 +212,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             'apps_health_url="http://127.0.0.1/apps/api/v1/health"',
             "for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15",
             'fetch_url "$apps_health_url"',
+            'curl -fsS --connect-timeout 2 "$1"',
+            'wget -qO- -T 2 "$1"',
             "dbus set linkease_apps_proxy_supported=1",
             'dbus set linkease_apps_proxy_hint=""',
             "dbus set linkease_apps_proxy_supported=0",
@@ -221,6 +223,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.config)
+        self.assertNotIn("command -v curl", self.config)
+        self.assertNotIn("command -v wget", self.config)
 
         start_full = re.search(r"start_full\(\)\{([\s\S]*?)\n\}", self.config)
         self.assertIsNotNone(start_full)

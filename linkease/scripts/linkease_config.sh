@@ -176,15 +176,7 @@ schedule_httpd_restart(){
 }
 
 fetch_url(){
-	if command -v curl >/dev/null 2>&1; then
-		curl -fsS --connect-timeout 2 "$1"
-		return $?
-	fi
-	if command -v wget >/dev/null 2>&1; then
-		wget -qO- -T 2 "$1"
-		return $?
-	fi
-	return 1
+	curl -fsS --connect-timeout 2 "$1" 2>/dev/null || wget -qO- -T 2 "$1" 2>/dev/null
 }
 
 ensure_apps_forward(){
