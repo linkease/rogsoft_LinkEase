@@ -205,16 +205,17 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.config)
 
-    def test_full_reports_apps_proxy_support_and_lite_standard_do_not_start_full(self):
+    def test_full_reports_unverified_apps_proxy_and_lite_standard_do_not_start_full(self):
         expected = [
             "ensure_apps_forward()",
-            "dbus set linkease_apps_proxy_supported=1",
             "dbus set linkease_apps_proxy_supported=0",
             "dbus set linkease_apps_proxy_hint=",
             "当前系统 httpd 不支持 /apps/ 反向代理",
+            "已使用19290端口直连",
         ]
         for item in expected:
             self.assertIn(item, self.config)
+        self.assertNotIn("dbus set linkease_apps_proxy_supported=1", self.config)
 
         standard_block = re.search(r"start_standard\(\)\{([\s\S]*?)\n\}", self.config)
         lite_block = re.search(r"start_lite\(\)\{([\s\S]*?)\n\}", self.config)
@@ -224,6 +225,20 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertNotIn("start_apptunnel", standard_block.group(1))
         self.assertNotIn("start_desktop", lite_block.group(1))
         self.assertNotIn("start_apptunnel", lite_block.group(1))
+
+    def test_desktop_firewall_rule_is_gated_to_full_edition(self):
+        load_iptables = re.search(r"load_iptables\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(load_iptables)
+        block = load_iptables.group(1)
+        self.assertIn('if [ "$LINKEASE_ACTIVE_EDITION" = "full" ]; then', block)
+        self.assertIn(
+            "iptables -t filter -I INPUT -p tcp --dport ${DESKTOP_PORT} -j ACCEPT",
+            block,
+        )
+        self.assertIn(
+            "iptables -t filter -I INPUT -p tcp --dport ${APPTUNNEL_PORT} -j ACCEPT",
+            block,
+        )
 
 
 if __name__ == "__main__":

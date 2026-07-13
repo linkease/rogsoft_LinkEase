@@ -237,11 +237,22 @@ var PROTOCOL = "cifs";
             return dbus["linkease_apps_proxy_supported"] == "1";
         }
 
+        function linkease_full_supported() {
+            return dbus["linkease_full_supported"] == "1";
+        }
+
         function build_full_url() {
             if (linkease_full_proxy_supported()) {
                 return current_browser_origin() + "/apps/";
             }
             return "http://" + r_lan_ipaddr + ":19290/apps/";
+        }
+
+        function build_management_url() {
+            if (selected_linkease_edition() == "full" && linkease_full_supported()) {
+                return build_full_url();
+            }
+            return "http://" + r_lan_ipaddr + ":8897";
         }
 
         function update_proxy_hint() {
@@ -250,20 +261,44 @@ var PROTOCOL = "cifs";
                 return;
             }
             if (selected_linkease_edition() == "full" && !linkease_full_proxy_supported()) {
+                hint.innerHTML = dbus["linkease_apps_proxy_hint"] || "当前系统 httpd 不支持 /apps/ 反向代理，已使用端口直连。建议升级系统到最新版本以获得更好的访问体验。";
                 E("linkease_proxy_hint").style.display = "";
             } else {
                 E("linkease_proxy_hint").style.display = "none";
             }
         }
 
+        function update_full_support_hint(force) {
+            var hint = E("linkease_full_support_hint");
+            if (!hint) {
+                return;
+            }
+            if (force || (selected_linkease_edition() == "full" && !linkease_full_supported())) {
+                hint.innerHTML = dbus["linkease_full_support_hint"] || "当前设备不支持 LinkEase Full，请使用 Standard 或精简版本。";
+                hint.style.display = "";
+            } else {
+                hint.style.display = "none";
+            }
+        }
+
+        function handle_linkease_edition_change() {
+            if (selected_linkease_edition() == "full" && !linkease_full_supported()) {
+                set_linkease_edition("standard");
+                update_full_support_hint(true);
+            } else {
+                update_full_support_hint(false);
+            }
+            generate_link();
+        }
+
         function generate_link() {
             var webite = E("linkease_website");  //访问linkease
             var linkease_guide = E("linkease_guide");    //配置中心
             var legacy = E("linkease_legacy");  //旧版入口
-            var full_url = build_full_url();
+            var management_url = build_management_url();
             var legacy_url = "http://" + r_lan_ipaddr + ":8897";
-            webite.href = full_url;
-            linkease_guide.href = full_url;
+            webite.href = management_url;
+            linkease_guide.href = management_url;
             legacy.href = legacy_url;
             update_proxy_hint();
             if (dbus["linkease_enable"] != "1") {
@@ -759,10 +794,11 @@ var PROTOCOL = "cifs";
                                                     <label>运行版本</label>
                                                 </th>
                                                 <td colspan="2">
-                                                    <label><input type="radio" name="linkease_edition" value="standard" onclick="generate_link();"> Standard 版本</label>
-                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="full" onclick="generate_link();"> Full 版本</label>
-                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="lite" onclick="generate_link();"> 精简版本（内存小于512M推荐）</label>
+                                                    <label><input type="radio" name="linkease_edition" value="standard" onclick="handle_linkease_edition_change();"> Standard 版本</label>
+                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="full" onclick="handle_linkease_edition_change();"> Full 版本</label>
+                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="lite" onclick="handle_linkease_edition_change();"> 精简版本（内存小于512M推荐）</label>
                                                     <div id="linkease_proxy_hint" style="display:none;margin-top:8px;color:#FC0;">当前系统 httpd 不支持 /apps/ 反向代理，已使用端口直连。建议升级系统到最新版本以获得更好的访问体验。</div>
+                                                    <div id="linkease_full_support_hint" style="display:none;margin-top:8px;color:#FC0;"></div>
                                                 </td>
                                             </tr>
                                             <tr id="linkease_status">

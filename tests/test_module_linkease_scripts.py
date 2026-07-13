@@ -33,8 +33,8 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
         self.assertRegex(self.html, guard_pattern)
 
     def test_full_ui_primary_entry_uses_apps_proxy(self):
-        self.assertIn('var full_url = build_full_url();', self.html)
-        self.assertIn('webite.href = full_url;', self.html)
+        self.assertIn('var management_url = build_management_url();', self.html)
+        self.assertIn('webite.href = management_url;', self.html)
         self.assertIn('id="linkease_website"', self.html)
         self.assertIn('打开LinkEase', self.html)
 
@@ -44,9 +44,17 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
         self.assertIn('id="linkease_legacy"', self.html)
         self.assertIn('旧版入口', self.html)
 
-    def test_config_center_uses_apps_not_legacy_guide(self):
+    def test_management_links_follow_the_selected_edition(self):
         self.assertNotIn(':8897/guide/index.html', self.html)
-        self.assertIn('linkease_guide.href = full_url;', self.html)
+        expected = [
+            'function build_management_url()',
+            'if (selected_linkease_edition() == "full" && linkease_full_supported()) {',
+            'return build_full_url();',
+            'return "http://" + r_lan_ipaddr + ":8897";',
+            'linkease_guide.href = management_url;',
+        ]
+        for item in expected:
+            self.assertIn(item, self.html)
 
     def test_edition_selector_replaces_simple_switch(self):
         expected = [
@@ -100,6 +108,22 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
             '当前系统 httpd 不支持 /apps/ 反向代理',
             '建议升级系统到最新版本',
             'E("linkease_proxy_hint").style.display',
+        ]
+        for item in expected:
+            self.assertIn(item, self.html)
+
+    def test_unsupported_full_selection_warns_and_falls_back_to_standard(self):
+        expected = [
+            'function linkease_full_supported()',
+            'return dbus["linkease_full_supported"] == "1";',
+            'function update_full_support_hint(force)',
+            'dbus["linkease_full_support_hint"]',
+            'function handle_linkease_edition_change()',
+            'if (selected_linkease_edition() == "full" && !linkease_full_supported()) {',
+            'set_linkease_edition("standard");',
+            'update_full_support_hint(true);',
+            'onclick="handle_linkease_edition_change();"',
+            'id="linkease_full_support_hint"',
         ]
         for item in expected:
             self.assertIn(item, self.html)

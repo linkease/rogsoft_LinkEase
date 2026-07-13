@@ -177,20 +177,14 @@ schedule_httpd_restart(){
 
 ensure_apps_forward(){
 	current_forward="$(nvram get apps_port_forward 2>/dev/null)"
-	if [ "$current_forward" = "$APPS_PORT_FORWARD" ]; then
-		dbus set linkease_apps_proxy_supported=1 >/dev/null 2>&1
-		dbus set linkease_apps_proxy_hint="" >/dev/null 2>&1
-		return 0
-	fi
-	if nvram set apps_port_forward="$APPS_PORT_FORWARD" >/dev/null 2>&1 && nvram commit >/dev/null 2>&1; then
-		dbus set linkease_apps_proxy_supported=1 >/dev/null 2>&1
-		dbus set linkease_apps_proxy_hint="" >/dev/null 2>&1
-		logger "[软件中心]: 初始化LinkEase访问入口，稍后重启httpd！"
-		schedule_httpd_restart
-		return 0
+	if [ "$current_forward" != "$APPS_PORT_FORWARD" ]; then
+		if nvram set apps_port_forward="$APPS_PORT_FORWARD" >/dev/null 2>&1 && nvram commit >/dev/null 2>&1; then
+			logger "[软件中心]: 初始化LinkEase访问入口，稍后重启httpd！"
+			schedule_httpd_restart
+		fi
 	fi
 	dbus set linkease_apps_proxy_supported=0 >/dev/null 2>&1
-	dbus set linkease_apps_proxy_hint="当前系统 httpd 不支持 /apps/ 反向代理，建议升级系统到最新版本。" >/dev/null 2>&1
+	dbus set linkease_apps_proxy_hint="当前系统 httpd 不支持 /apps/ 反向代理，已使用19290端口直连，建议升级系统到最新版本。" >/dev/null 2>&1
 	return 0
 }
 
@@ -255,7 +249,9 @@ clean_iptables_port(){
 load_iptables(){
 	clean_iptables_port ${DESKTOP_PORT}
 	clean_iptables_port ${APPTUNNEL_PORT}
-	iptables -t filter -I INPUT -p tcp --dport ${DESKTOP_PORT} -j ACCEPT >/dev/null 2>&1
+	if [ "$LINKEASE_ACTIVE_EDITION" = "full" ]; then
+		iptables -t filter -I INPUT -p tcp --dport ${DESKTOP_PORT} -j ACCEPT >/dev/null 2>&1
+	fi
 	iptables -t filter -I INPUT -p tcp --dport ${APPTUNNEL_PORT} -j ACCEPT >/dev/null 2>&1
 }
 
