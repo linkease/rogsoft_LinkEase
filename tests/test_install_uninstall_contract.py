@@ -35,15 +35,15 @@ class InstallUninstallContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.install)
 
-    def test_install_stops_legacy_and_full_processes(self):
+    def test_install_stops_legacy_and_full_linkease_processes_only(self):
         expected = [
             "killall link-ease",
             "killall ${DESKTOP_BIN}",
             "killall ${APPTUNNEL_BIN}",
-            "killall kaiplus_bin",
         ]
         for item in expected:
             self.assertIn(item, self.install)
+        self.assertNotIn("killall kaiplus_bin", self.install)
 
     def test_install_cleans_betterapps_plugin_and_metadata(self):
         expected = [
@@ -74,23 +74,27 @@ class InstallUninstallContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.install)
 
-    def test_install_copies_full_runtime_and_kaiplus(self):
+    def test_install_copies_full_runtime_without_kaiplus(self):
         expected = [
             "cp -rf /tmp/${module}/bin/* /koolshare/bin/",
-            "rm -rf /koolshare/linkease/kaiplus",
-            "cp -rf /tmp/${module}/kaiplus /koolshare/linkease/",
             "chmod 755 /koolshare/bin/${DESKTOP_BIN}",
             "chmod 755 /koolshare/bin/${APPTUNNEL_BIN}",
-            "chmod 755 /koolshare/linkease/kaiplus/bin/kaiplus_bin",
         ]
         for item in expected:
             self.assertIn(item, self.install)
+        forbidden = [
+            "rm -rf /koolshare/linkease/kaiplus",
+            "cp -rf /tmp/${module}/kaiplus /koolshare/linkease/",
+            "chmod 755 /koolshare/linkease/kaiplus/bin/kaiplus_bin",
+            "chmod 755 /koolshare/linkease/kaiplus/helpers/kaiplus_workspace_tool",
+        ]
+        for item in forbidden:
+            self.assertNotIn(item, self.install)
 
-    def test_uninstall_removes_full_linkease_and_betterapps_leftovers(self):
+    def test_uninstall_removes_full_linkease_and_betterapps_leftovers_without_kaiplus(self):
         expected = [
             "killall linkease-desktop",
             "killall apptunnel-client",
-            "killall kaiplus_bin",
             "rm -rf /koolshare/bin/linkease-desktop",
             "rm -rf /koolshare/bin/apptunnel-client",
             "rm -rf /koolshare/bin/link-ease",
@@ -105,6 +109,9 @@ class InstallUninstallContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.uninstall)
+        self.assertNotIn("killall kaiplus_bin", self.uninstall)
+        self.assertNotIn("rm -rf /koolshare/bin/kaiplus_bin", self.uninstall)
+        self.assertNotIn("rm -rf /koolshare/kaiplus", self.uninstall)
 
 
 if __name__ == "__main__":

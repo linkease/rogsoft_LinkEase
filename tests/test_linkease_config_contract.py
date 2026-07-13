@@ -14,25 +14,45 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         cls.config = CONFIG.read_text(encoding="utf-8")
         cls.status = STATUS.read_text(encoding="utf-8")
 
-    def test_full_runtime_paths_are_linkease_owned(self):
+    def test_full_runtime_paths_are_linkease_owned_without_embedded_kaiplus(self):
         self.assertIn("DESKTOP_BIN=/koolshare/bin/linkease-desktop", self.config)
         self.assertIn("APPTUNNEL_BIN=/koolshare/bin/apptunnel-client", self.config)
         self.assertIn("APP_DIR=/koolshare/linkease", self.config)
-        self.assertIn("KAIPLUS_BIN=${APP_DIR}/kaiplus/bin/kaiplus_bin", self.config)
-        self.assertIn("KAIPLUS_DEFAULTS_DIR=${APP_DIR}/kaiplus/defaults", self.config)
+        forbidden = [
+            "KAIPLUS_BIN=${APP_DIR}/kaiplus/bin/kaiplus_bin",
+            "KAIPLUS_STATIC_DIR=${APP_DIR}/kaiplus/www",
+            "KAIPLUS_DEFAULTS_DIR=${APP_DIR}/kaiplus/defaults",
+            "KAIPLUS_ADDR=127.0.0.1:19291",
+            "KAIPLUS_BASE_PATH=/apps/kaiplus/",
+            "KAIPLUS_HOME=${LINKEASE_DATA_ROOT}/kaiplus",
+        ]
+        for item in forbidden:
+            self.assertNotIn(item, self.config)
 
-    def test_full_runtime_exports_apps_and_asusgo_environment(self):
+    def test_full_runtime_exports_apps_and_disables_embedded_kaiplus(self):
         expected = [
             "export SERVER_HOST=0.0.0.0",
             "export SERVER_PORT=${DESKTOP_PORT}",
             "export SERVER_BASE_PATH=/apps/",
             "export LINKEASE_EDITION=router-lite",
-            "export KAIPLUS_ENABLED=1",
-            "export KAIPLUS_SYSTEM_ROLE=asusgo",
-            "export KAIPLUS_BASE_PATH=/apps/kaiplus/",
-            "export KAIPLUS_ADDR=127.0.0.1:19291",
-            "export KAIPLUS_PROXY_TARGET=http://127.0.0.1:19291",
-            "export REASONIX_CREDENTIALS_STORE=file",
+            "export KAIPLUS_ENABLED=0",
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+        self.assertNotIn("export KAIPLUS_ENABLED=1", self.config)
+        self.assertNotIn("export REASONIX_CREDENTIALS_STORE=file", self.config)
+
+    def test_linkease_detects_independent_kaiplus_for_proxy_only(self):
+        expected = [
+            "resolve_kaiplus_proxy_target()",
+            'KAIPLUS_PROXY_TARGET=""',
+            "[ -x /koolshare/scripts/kaiplus_config.sh ] || return 0",
+            "[ -x /koolshare/bin/kaiplus_bin ] || return 0",
+            'kaiplus_port="$(dbus get kaiplus_port 2>/dev/null)"',
+            "kaiplus_port=8189",
+            'KAIPLUS_PROXY_TARGET="http://127.0.0.1:${kaiplus_port}"',
+            "resolve_kaiplus_proxy_target",
+            'export KAIPLUS_PROXY_TARGET="${KAIPLUS_PROXY_TARGET}"',
         ]
         for item in expected:
             self.assertIn(item, self.config)
@@ -65,11 +85,10 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertLess(linkease_index, betterapps_index)
         self.assertLess(betterapps_index, bootstrap_index)
 
-    def test_process_lifecycle_manages_desktop_apptunnel_and_kaiplus(self):
+    def test_process_lifecycle_manages_only_desktop_and_apptunnel(self):
         expected = [
             "killall linkease-desktop",
             "killall apptunnel-client",
-            "killall kaiplus_bin",
             "start_desktop",
             "start_apptunnel",
             "load_iptables",

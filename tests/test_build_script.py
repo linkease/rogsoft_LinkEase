@@ -36,51 +36,27 @@ class BuildScriptTest(unittest.TestCase):
             "6ae7ddbe28ca07e9e2a51476b0ae7ffdef1d1fa3d4f9b48260be700c1fff0833",
         )
 
-    def test_build_module_can_stage_full_artifacts_from_directory(self):
+    def test_build_stages_full_binaries_without_kaiplus(self):
         module = self.load_build_module()
 
-        with tempfile.TemporaryDirectory() as temp:
-            temp_root = Path(temp) / "repo"
-            artifact_dir = Path(temp) / "artifact"
-            temp_root.mkdir()
-            artifact_dir.mkdir()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            shutil.copytree(ROOT / "linkease", root / "linkease")
+            shutil.copy2(ROOT / "config.json.js", root / "config.json.js")
+            artifact = root / "artifact"
+            artifact.mkdir()
+            for name in ("linkease-desktop", "apptunnel-client"):
+                path = artifact / name
+                path.write_text("#!/bin/sh\n", encoding="utf-8")
+                path.chmod(0o755)
 
-            shutil.copy2(ROOT / "config.json.js", temp_root / "config.json.js")
-            shutil.copytree(
-                ROOT / "linkease",
-                temp_root / "linkease",
-                ignore=shutil.ignore_patterns("bin", "kaiplus"),
-            )
-            (temp_root / "linkease" / "bin").mkdir()
-
-            (artifact_dir / "linkease-desktop").write_text("desktop", encoding="utf-8")
-            (artifact_dir / "apptunnel-client").write_text("apptunnel", encoding="utf-8")
-            script_dir = artifact_dir / "kaiplus" / "defaults" / "router" / "scripts"
-            script_dir.mkdir(parents=True)
-            (script_dir / "start.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-            (artifact_dir / "kaiplus" / "bin").mkdir()
-            (artifact_dir / "kaiplus" / "bin" / "kaiplus_bin").write_text("kai", encoding="utf-8")
-
-            conf = module.build_module(root=temp_root, artifact_dir=artifact_dir, skip_download=True)
+            conf = module.build_module(root=root, artifact_dir=artifact)
 
             self.assertEqual(conf["module"], "linkease")
-            for binary in ("linkease-desktop", "apptunnel-client"):
-                staged = temp_root / "linkease" / "bin" / binary
-                self.assertTrue(staged.is_file())
-                self.assertTrue(staged.stat().st_mode & stat.S_IXUSR)
-            self.assertTrue((temp_root / "linkease" / "kaiplus" / "bin" / "kaiplus_bin").is_file())
-            self.assertTrue(
-                (temp_root / "linkease" / "kaiplus" / "defaults" / "router" / "scripts" / "start.sh").stat().st_mode
-                & stat.S_IXUSR
-            )
-
-            with tarfile.open(temp_root / "linkease.tar.gz", "r:gz") as tf:
-                names = set(tf.getnames())
-
-            self.assertIn("linkease/bin/linkease-desktop", names)
-            self.assertIn("linkease/bin/apptunnel-client", names)
-            self.assertIn("linkease/kaiplus/bin/kaiplus_bin", names)
-            self.assertIn("linkease/kaiplus/defaults/router/scripts/start.sh", names)
+            self.assertTrue((root / "linkease.tar.gz").is_file())
+            self.assertTrue((root / "linkease" / "bin" / "linkease-desktop").is_file())
+            self.assertTrue((root / "linkease" / "bin" / "apptunnel-client").is_file())
+            self.assertFalse((root / "linkease" / "kaiplus").exists())
 
     def test_build_module_rejects_path_traversal_module_name(self):
         module = self.load_build_module()
