@@ -30,7 +30,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             self.assertNotIn(item, self.config)
         self.assertNotRegex(
             self.config,
-            r"(?m)^\s*(?:export\s+)?KAIPLUS_(?:BIN|STATIC_DIR|DEFAULTS_DIR|HOME)\s*=\s*['\"]?\$\{?APP_DIR\}?/",
+            r"(?m)^\s*(?:export\s+)?KAIPLUS_(?:BIN|STATIC_DIR|DEFAULTS_DIR|HOME|ADDR|BASE_PATH)(?:\s*=|\s*$)",
         )
 
     def test_full_runtime_exports_apps_and_disables_embedded_kaiplus(self):
@@ -101,17 +101,14 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.config)
         self.assertNotIn("start_kaiplus", self.config)
+        self.assert_no_forbidden_kaiplus_runtime_targets(self.config)
+
+    def assert_no_forbidden_kaiplus_runtime_targets(self, script):
+        commands = r"(?:start-stop-daemon|killall|kill|mv|install|cp|rm|mkdir|chmod|find)"
+        targets = r"(?:kaiplus_bin|/koolshare/kaiplus|/koolshare/linkease/kaiplus|\$\{?KAIPLUS_BIN\}?|\$\{?KAIPLUS_HOME\}?)"
         self.assertNotRegex(
-            self.config,
-            r"(?m)^\s*(?:if\s+)?\[\s+-x\s+['\"]?\$\{?KAIPLUS_BIN\}?",
-        )
-        self.assertNotRegex(
-            self.config,
-            r"(?m)^\s*killall\s+['\"]?\$\{?KAIPLUS_BIN\}?",
-        )
-        self.assertNotRegex(
-            self.config,
-            r"(?m)^\s*killall\s+['\"]?kaiplus_bin['\"]?",
+            script,
+            rf"(?im)\b{commands}\b[^\n]*{targets}",
         )
 
     def test_apps_forward_is_linkease_owned(self):

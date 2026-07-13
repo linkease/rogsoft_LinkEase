@@ -46,6 +46,14 @@ class InstallUninstallContractTest(unittest.TestCase):
                     % (variable, line),
                 )
 
+    def assert_no_forbidden_kaiplus_runtime_targets(self, script):
+        commands = r"(?:start-stop-daemon|killall|kill|mv|install|cp|rm|mkdir|chmod|find)"
+        targets = r"(?:kaiplus_bin|/koolshare/kaiplus|/koolshare/linkease/kaiplus|\$\{?KAIPLUS_BIN\}?|\$\{?KAIPLUS_HOME\}?)"
+        self.assertNotRegex(
+            script,
+            rf"(?im)\b{commands}\b[^\n]*{targets}",
+        )
+
     def test_install_keeps_module_identity_and_full_binary_names(self):
         expected = [
             "module=${DIR##*/}",
@@ -76,10 +84,7 @@ class InstallUninstallContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.install)
-        self.assertNotRegex(
-            self.install,
-            r"(?m)^\s*killall\s+['\"]?(?:kaiplus_bin|\$\{?KAIPLUS_BIN\}?)",
-        )
+        self.assert_no_forbidden_kaiplus_runtime_targets(self.install)
 
     def test_install_cleans_betterapps_plugin_and_metadata(self):
         expected = [
@@ -126,10 +131,7 @@ class InstallUninstallContractTest(unittest.TestCase):
         ]
         for item in forbidden:
             self.assertNotIn(item, self.install)
-        self.assertNotRegex(
-            self.install,
-            r"(?mi)^\s*(?:rm|cp|mkdir|chmod|find)\b.*kaiplus",
-        )
+        self.assert_no_forbidden_kaiplus_runtime_targets(self.install)
         self.assert_no_external_linkease_data_deletion(self.install)
 
     def test_uninstall_removes_full_linkease_and_betterapps_leftovers_without_kaiplus(self):
@@ -150,14 +152,7 @@ class InstallUninstallContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.uninstall)
-        self.assertNotRegex(
-            self.uninstall,
-            r"(?mi)^\s*killall\s+['\"]?(?:kaiplus_bin|\$\{?KAIPLUS_BIN\}?)",
-        )
-        self.assertNotRegex(
-            self.uninstall,
-            r"(?mi)^\s*(?:rm|rmdir|find)\b.*kaiplus",
-        )
+        self.assert_no_forbidden_kaiplus_runtime_targets(self.uninstall)
         self.assert_no_external_linkease_data_deletion(self.uninstall)
 
 

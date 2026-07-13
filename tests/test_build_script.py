@@ -48,6 +48,9 @@ class BuildScriptTest(unittest.TestCase):
                 path = artifact / name
                 path.write_text("#!/bin/sh\n", encoding="utf-8")
                 path.chmod(0o755)
+            kaiplus = artifact / "kaiplus"
+            kaiplus.mkdir()
+            (kaiplus / "marker").write_text("must not be staged\n", encoding="utf-8")
 
             conf = module.build_module(root=root, artifact_dir=artifact)
 

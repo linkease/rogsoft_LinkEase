@@ -55,3 +55,35 @@ git diff --check
 Result: passed with exit code 0.
 
 Additional check: `python3 -m py_compile tests/test_linkease_config_contract.py tests/test_install_uninstall_contract.py tests/test_build_script.py` passed, with no syntax/import errors.
+
+## Remaining Review Fixes
+
+- Replaced the remaining exact-value-only KaiPlus path checks with a regex that rejects every assignment or export of `KAIPLUS_BIN`, `KAIPLUS_STATIC_DIR`, `KAIPLUS_DEFAULTS_DIR`, `KAIPLUS_HOME`, `KAIPLUS_ADDR`, and `KAIPLUS_BASE_PATH`, while retaining the allowed disabled flag and proxy target contract.
+- Added focused regex scans covering `start-stop-daemon`, `killall`, `kill`, `mv`, `install`, `cp`, `rm`, `mkdir`, `chmod`, and `find` when targeting `kaiplus_bin`, the forbidden `/koolshare` paths, or `KAIPLUS_BIN`/`KAIPLUS_HOME` variables across config, install, and uninstall checks.
+- Added an `artifact/kaiplus/marker` fixture and verified both the staged module and generated tarball exclude `linkease/kaiplus` members.
+
+## Final Verification
+
+Command:
+
+```text
+python3 -m unittest discover tests
+```
+
+Result: expected failure because production code still contains the embedded KaiPlus contract and the old build staging requirement. The suite ran 27 tests and reported 8 failures and 0 errors. Failures cover forbidden config exports and lifecycle commands, forbidden install/uninstall ownership, missing proxy resolution, and build staging of the embedded KaiPlus directory.
+
+Command:
+
+```text
+git diff --check
+```
+
+Result: passed with exit code 0.
+
+Command:
+
+```text
+python3 -m py_compile tests/test_linkease_config_contract.py tests/test_install_uninstall_contract.py tests/test_build_script.py
+```
+
+Result: passed with exit code 0 and no output.
