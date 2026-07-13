@@ -175,6 +175,18 @@ schedule_httpd_restart(){
 	(sleep 3; service restart_httpd >/dev/null 2>&1) &
 }
 
+fetch_url(){
+	if command -v curl >/dev/null 2>&1; then
+		curl -fsS --connect-timeout 2 "$1"
+		return $?
+	fi
+	if command -v wget >/dev/null 2>&1; then
+		wget -qO- -T 2 "$1"
+		return $?
+	fi
+	return 1
+}
+
 ensure_apps_forward(){
 	current_forward="$(nvram get apps_port_forward 2>/dev/null)"
 	if [ "$current_forward" != "$APPS_PORT_FORWARD" ]; then
@@ -183,8 +195,21 @@ ensure_apps_forward(){
 			schedule_httpd_restart
 		fi
 	fi
+	return 0
+}
+
+verify_apps_forward(){
+	apps_health_url="http://127.0.0.1/apps/api/v1/health"
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		if fetch_url "$apps_health_url" >/dev/null 2>&1; then
+			dbus set linkease_apps_proxy_supported=1 >/dev/null 2>&1
+			dbus set linkease_apps_proxy_hint="" >/dev/null 2>&1
+			return 0
+		fi
+		sleep 1
+	done
 	dbus set linkease_apps_proxy_supported=0 >/dev/null 2>&1
-	dbus set linkease_apps_proxy_hint="当前系统 httpd 不支持 /apps/ 反向代理，已使用19290端口直连，建议升级系统到最新版本。" >/dev/null 2>&1
+	dbus set linkease_apps_proxy_hint="当前系统 httpd 不支持 /apps/ 反向代理，已使用${DESKTOP_PORT}端口直连，建议升级系统到最新版本。" >/dev/null 2>&1
 	return 0
 }
 
@@ -210,6 +235,7 @@ start_full(){
 	kill_ee
 	start_desktop
 	start_apptunnel
+	verify_apps_forward
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
 }

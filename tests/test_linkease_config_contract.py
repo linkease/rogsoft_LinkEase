@@ -205,17 +205,28 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.config)
 
-    def test_full_reports_unverified_apps_proxy_and_lite_standard_do_not_start_full(self):
+    def test_full_verifies_apps_proxy_after_desktop_starts_and_lite_standard_do_not_start_full(self):
         expected = [
             "ensure_apps_forward()",
+            "verify_apps_forward()",
+            'apps_health_url="http://127.0.0.1/apps/api/v1/health"',
+            'fetch_url "$apps_health_url"',
+            "dbus set linkease_apps_proxy_supported=1",
+            'dbus set linkease_apps_proxy_hint=""',
             "dbus set linkease_apps_proxy_supported=0",
             "dbus set linkease_apps_proxy_hint=",
             "当前系统 httpd 不支持 /apps/ 反向代理",
-            "已使用19290端口直连",
+            '已使用${DESKTOP_PORT}端口直连',
         ]
         for item in expected:
             self.assertIn(item, self.config)
-        self.assertNotIn("dbus set linkease_apps_proxy_supported=1", self.config)
+
+        start_full = re.search(r"start_full\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(start_full)
+        block = start_full.group(1)
+        self.assertLess(block.index("ensure_apps_forward"), block.index("start_desktop"))
+        self.assertLess(block.index("start_desktop"), block.index("start_apptunnel"))
+        self.assertLess(block.index("start_apptunnel"), block.index("verify_apps_forward"))
 
         standard_block = re.search(r"start_standard\(\)\{([\s\S]*?)\n\}", self.config)
         lite_block = re.search(r"start_lite\(\)\{([\s\S]*?)\n\}", self.config)
