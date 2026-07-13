@@ -93,7 +93,13 @@ resolve_linkease_data_disk(){
 
 normalize_linkease_edition(){
 	case "$linkease_edition" in
-		standard|full|lite) echo "$linkease_edition" ;;
+		standard|full|lite)
+			if [ "$linkease_edition" = "full" ] && [ "$linkease_full_supported" != "1" ]; then
+				echo standard
+			else
+				echo "$linkease_edition"
+			fi
+			;;
 		*) [ "$linkease_simple" = "1" ] && echo lite || echo standard ;;
 	esac
 }

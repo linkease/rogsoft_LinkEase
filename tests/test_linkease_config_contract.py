@@ -154,7 +154,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
     def test_runtime_normalizes_standard_full_lite_editions(self):
         expected = [
             "normalize_linkease_edition()",
-            'standard|full|lite) echo "$linkease_edition" ;;',
+            "standard|full|lite)",
+            'echo "$linkease_edition"',
             '[ "$linkease_simple" = "1" ] && echo lite || echo standard',
             'LINKEASE_ACTIVE_EDITION="$(normalize_linkease_edition)"',
             'dbus set linkease_edition="$LINKEASE_ACTIVE_EDITION"',
@@ -163,6 +164,17 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.config)
+
+    def test_runtime_falls_back_to_standard_when_full_is_unsupported(self):
+        normalized_edition = re.search(
+            r"normalize_linkease_edition\(\)\{([\s\S]*?)\n\}", self.config
+        )
+        self.assertIsNotNone(normalized_edition)
+        self.assertIn(
+            'if [ "$linkease_edition" = "full" ] && [ "$linkease_full_supported" != "1" ]; then',
+            normalized_edition.group(1),
+        )
+        self.assertIn("echo standard", normalized_edition.group(1))
 
     def test_runtime_has_separate_standard_full_lite_starters(self):
         expected = [
