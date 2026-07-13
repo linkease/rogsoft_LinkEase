@@ -147,7 +147,12 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "LinkEase Standard",
             "LinkEase Full",
             "LinkEase Lite",
-            "当前系统未启用 /apps/ 反向代理，建议升级系统",
+            "httpd_proxy_capable()",
+            "httpd_proxy_running()",
+            "detect_apps_proxy_state",
+            "当前系统 httpd 不支持 /apps/ 反向代理",
+            "当前系统 httpd proxy 未运行",
+            "已使用19290端口直连",
         ]
         for item in expected:
             self.assertIn(item, self.status)
@@ -189,6 +194,31 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         )
         self.assertIn("echo standard", normalized_edition.group(1))
 
+    def test_full_runtime_requires_usb2jffs_ready(self):
+        expected = [
+            "detect_usb2jffs_ready()",
+            "usb2jffs_is_enabled()",
+            "is_usb_jffs_running()",
+            "dbus get usb2jffs_enable",
+            "dbus get usb2jffs_mount",
+            "/proc/mounts",
+            'dbus set linkease_usb2jffs_ready=1',
+            'dbus set linkease_usb2jffs_ready=0',
+            "需要开启并启用 usb2jffs",
+            "detect_full_runtime_support",
+            'dbus set linkease_full_supported=0',
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+
+        startup_order = [
+            "detect_full_runtime_support",
+            "persist_active_edition",
+            "configure_data_paths",
+        ]
+        positions = [self.config.index(item) for item in startup_order]
+        self.assertEqual(positions, sorted(positions))
+
     def test_runtime_has_separate_standard_full_lite_starters(self):
         expected = [
             "start_standard()",
@@ -205,33 +235,37 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.config)
 
-    def test_full_verifies_apps_proxy_after_desktop_starts_and_lite_standard_do_not_start_full(self):
+    def test_full_detects_httpd_proxy_state_and_lite_standard_do_not_start_full(self):
         expected = [
             "ensure_apps_forward()",
-            "verify_apps_forward()",
-            'apps_health_url="http://127.0.0.1/apps/api/v1/health"',
-            "for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15",
-            'fetch_url "$apps_health_url"',
-            'curl -fsS --connect-timeout 2 "$1"',
-            'wget -qO- -T 2 "$1"',
+            "detect_apps_proxy_state()",
+            "httpd_proxy_capable()",
+            "httpd_proxy_running()",
+            "/usr/sbin/httpd -C proxy",
+            "ps | grep '[h]ttpd-proxy'",
+            'current_forward="$(nvram get apps_port_forward 2>/dev/null)"',
+            'dbus set linkease_httpd_proxy_capable="$proxy_capable"',
+            'dbus set linkease_httpd_proxy_running="$proxy_running"',
+            'dbus set linkease_httpd_proxy_backend="$proxy_backend"',
             "dbus set linkease_apps_proxy_supported=1",
             'dbus set linkease_apps_proxy_hint=""',
             "dbus set linkease_apps_proxy_supported=0",
             "dbus set linkease_apps_proxy_hint=",
             "当前系统 httpd 不支持 /apps/ 反向代理",
+            "当前系统 httpd proxy 未运行",
             '已使用${DESKTOP_PORT}端口直连',
+            "wait_httpd_proxy_running",
         ]
         for item in expected:
             self.assertIn(item, self.config)
-        self.assertNotIn("command -v curl", self.config)
-        self.assertNotIn("command -v wget", self.config)
+        self.assertNotIn('apps_health_url="http://127.0.0.1/apps/api/v1/health"', self.config)
 
         start_full = re.search(r"start_full\(\)\{([\s\S]*?)\n\}", self.config)
         self.assertIsNotNone(start_full)
         block = start_full.group(1)
         self.assertLess(block.index("ensure_apps_forward"), block.index("start_desktop"))
         self.assertLess(block.index("start_desktop"), block.index("start_apptunnel"))
-        self.assertLess(block.index("start_apptunnel"), block.index("verify_apps_forward"))
+        self.assertLess(block.index("start_apptunnel"), block.index("detect_apps_proxy_state"))
 
         standard_block = re.search(r"start_standard\(\)\{([\s\S]*?)\n\}", self.config)
         lite_block = re.search(r"start_lite\(\)\{([\s\S]*?)\n\}", self.config)

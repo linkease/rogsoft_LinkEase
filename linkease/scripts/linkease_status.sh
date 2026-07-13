@@ -14,7 +14,51 @@ LINKEASE_ACTIVE_EDITION="$(normalize_linkease_edition)"
 legacy_pid="$(pidof link-ease)"
 desktop_pid="$(pidof linkease-desktop)"
 apptunnel_pid="$(pidof apptunnel-client)"
+DESKTOP_PORT=19290
 health_url="http://127.0.0.1:19290/apps/api/v1/health"
+
+fetch_url(){
+	curl -fsS --connect-timeout 2 "$1" 2>/dev/null || wget -qO- -T 2 "$1" 2>/dev/null
+}
+
+httpd_proxy_capable(){
+	[ -x /usr/sbin/httpd ] && /usr/sbin/httpd -C proxy >/dev/null 2>&1
+}
+
+httpd_proxy_running(){
+	ps | grep '[h]ttpd-proxy' >/dev/null 2>&1
+}
+
+detect_apps_proxy_state(){
+	linkease_httpd_proxy_backend="$(nvram get apps_port_forward 2>/dev/null)"
+	linkease_httpd_proxy_capable=0
+	linkease_httpd_proxy_running=0
+	linkease_apps_proxy_hint=""
+
+	if httpd_proxy_capable; then
+		linkease_httpd_proxy_capable=1
+	fi
+	if httpd_proxy_running; then
+		linkease_httpd_proxy_running=1
+	fi
+
+	if [ "$linkease_httpd_proxy_capable" != "1" ]; then
+		linkease_apps_proxy_hint="当前系统 httpd 不支持 /apps/ 反向代理，已使用${DESKTOP_PORT}端口直连，建议升级系统到最新版本。"
+	elif [ "$linkease_httpd_proxy_running" != "1" ]; then
+		linkease_apps_proxy_hint="当前系统 httpd proxy 未运行，已使用${DESKTOP_PORT}端口直连；正在初始化 /apps/ 入口，可稍后刷新。"
+	fi
+
+	dbus set linkease_httpd_proxy_capable="$linkease_httpd_proxy_capable" >/dev/null 2>&1
+	dbus set linkease_httpd_proxy_running="$linkease_httpd_proxy_running" >/dev/null 2>&1
+	dbus set linkease_httpd_proxy_backend="$linkease_httpd_proxy_backend" >/dev/null 2>&1
+	if [ "$linkease_httpd_proxy_running" = "1" ]; then
+		dbus set linkease_apps_proxy_supported=1 >/dev/null 2>&1
+		dbus set linkease_apps_proxy_hint="" >/dev/null 2>&1
+	else
+		dbus set linkease_apps_proxy_supported=0 >/dev/null 2>&1
+		dbus set linkease_apps_proxy_hint="$linkease_apps_proxy_hint" >/dev/null 2>&1
+	fi
+}
 
 case "$LINKEASE_ACTIVE_EDITION" in
 	standard)
@@ -32,6 +76,7 @@ case "$LINKEASE_ACTIVE_EDITION" in
 		fi
 		;;
 	full)
+		detect_apps_proxy_state
 		if [ -z "$desktop_pid" ] && [ -z "$apptunnel_pid" ]; then
 			http_response "LinkEase Full 未运行"
 			exit 0
@@ -44,18 +89,16 @@ case "$LINKEASE_ACTIVE_EDITION" in
 			http_response "【警告】：LinkEase Full 主服务运行中，旧版8897入口未运行"
 			exit 0
 		fi
-		if command -v curl >/dev/null 2>&1; then
-			if curl -fsS --connect-timeout 2 "$health_url" >/dev/null 2>&1; then
-				if [ "$linkease_apps_proxy_supported" = "1" ]; then
-					status_msg="LinkEase Full 运行正常，/apps/ 与8897入口已启动"
-				else
-					status_msg="LinkEase Full 运行正常，当前系统未启用 /apps/ 反向代理，建议升级系统"
-				fi
+		if fetch_url "$health_url" >/dev/null 2>&1; then
+			if [ "$linkease_httpd_proxy_running" = "1" ]; then
+				status_msg="LinkEase Full 运行正常，/apps/ 与8897入口已启动"
+			elif [ "$linkease_httpd_proxy_capable" = "1" ]; then
+				status_msg="LinkEase Full 运行正常，当前系统 httpd proxy 未运行，已使用19290端口直连"
 			else
-				status_msg="LinkEase Full 进程运行中，/apps/ 健康检查未就绪"
+				status_msg="LinkEase Full 运行正常，当前系统 httpd 不支持 /apps/ 反向代理，已使用19290端口直连，建议升级系统"
 			fi
 		else
-			status_msg="LinkEase Full 进程运行中，未找到curl，跳过/apps/健康检查"
+			status_msg="LinkEase Full 进程运行中，/apps/ 健康检查未就绪"
 		fi
 		http_response "$status_msg"
 		;;

@@ -91,6 +91,63 @@ resolve_linkease_data_disk(){
 	return 0
 }
 
+is_usb_jffs_running(){
+	local resolved_jffs
+	resolved_jffs="$(readlink -f /jffs 2>/dev/null)"
+	case "$resolved_jffs" in
+		/tmp/mnt/*|/mnt/*|/media/*)
+			return 0
+			;;
+	esac
+
+	awk '$2 == "/jffs" { print $1 }' /proc/mounts 2>/dev/null | tail -n 1 | grep -Eq '^(/dev/sd|/dev/mapper/|/tmp/mnt/|/mnt/|/media/)'
+}
+
+usb2jffs_is_enabled(){
+	[ "$(dbus get usb2jffs_enable 2>/dev/null)" = "1" ] && return 0
+	[ "$(dbus get usb2jffs_mount 2>/dev/null)" = "1" ] && return 0
+	is_usb_jffs_running
+}
+
+detect_usb2jffs_ready(){
+	if usb2jffs_is_enabled && is_usb_jffs_running; then
+		linkease_usb2jffs_ready=1
+		dbus set linkease_usb2jffs_ready=1 >/dev/null 2>&1
+		dbus set linkease_usb2jffs_hint="" >/dev/null 2>&1
+		return 0
+	fi
+
+	linkease_usb2jffs_ready=0
+	dbus set linkease_usb2jffs_ready=0 >/dev/null 2>&1
+	dbus set linkease_usb2jffs_hint="LinkEase Full 需要开启并启用 usb2jffs 后使用。" >/dev/null 2>&1
+	return 1
+}
+
+detect_full_runtime_support(){
+	local ARCH
+	ARCH=$(uname -m)
+	case "${ARCH}" in
+		aarch64|arm64)
+			if detect_usb2jffs_ready; then
+				linkease_full_supported=1
+				dbus set linkease_full_supported=1 >/dev/null 2>&1
+				dbus set linkease_full_support_hint="" >/dev/null 2>&1
+			else
+				linkease_full_supported=0
+				dbus set linkease_full_supported=0 >/dev/null 2>&1
+				dbus set linkease_full_support_hint="LinkEase Full 需要开启并启用 usb2jffs 后使用。" >/dev/null 2>&1
+			fi
+			;;
+		*)
+			linkease_usb2jffs_ready=0
+			linkease_full_supported=0
+			dbus set linkease_usb2jffs_ready=0 >/dev/null 2>&1
+			dbus set linkease_full_supported=0 >/dev/null 2>&1
+			dbus set linkease_full_support_hint="LinkEase Full 仅支持 arm64/aarch64，当前设备可继续使用 Standard 或精简版本。" >/dev/null 2>&1
+			;;
+	esac
+}
+
 normalize_linkease_edition(){
 	case "$linkease_edition" in
 		standard|full|lite)
@@ -135,6 +192,7 @@ configure_data_paths(){
 	export TEMP_PATH=${LINKEASE_DATA_ROOT}/tmp
 }
 
+detect_full_runtime_support
 persist_active_edition
 configure_data_paths
 
@@ -179,29 +237,82 @@ fetch_url(){
 	curl -fsS --connect-timeout 2 "$1" 2>/dev/null || wget -qO- -T 2 "$1" 2>/dev/null
 }
 
+httpd_proxy_capable(){
+	[ -x /usr/sbin/httpd ] && /usr/sbin/httpd -C proxy >/dev/null 2>&1
+}
+
+httpd_proxy_running(){
+	ps | grep '[h]ttpd-proxy' >/dev/null 2>&1
+}
+
+set_apps_proxy_state(){
+	proxy_capable="$1"
+	proxy_running="$2"
+	proxy_backend="$3"
+	proxy_hint="$4"
+
+	dbus set linkease_httpd_proxy_capable="$proxy_capable" >/dev/null 2>&1
+	dbus set linkease_httpd_proxy_running="$proxy_running" >/dev/null 2>&1
+	dbus set linkease_httpd_proxy_backend="$proxy_backend" >/dev/null 2>&1
+	if [ "$proxy_running" = "1" ]; then
+		dbus set linkease_apps_proxy_supported=1 >/dev/null 2>&1
+		dbus set linkease_apps_proxy_hint="" >/dev/null 2>&1
+	else
+		dbus set linkease_apps_proxy_supported=0 >/dev/null 2>&1
+		dbus set linkease_apps_proxy_hint="$proxy_hint" >/dev/null 2>&1
+	fi
+}
+
+detect_apps_proxy_state(){
+	current_forward="$(nvram get apps_port_forward 2>/dev/null)"
+	proxy_backend="$current_forward"
+	proxy_capable=0
+	proxy_running=0
+	proxy_hint=""
+
+	if httpd_proxy_capable; then
+		proxy_capable=1
+	fi
+	if httpd_proxy_running; then
+		proxy_running=1
+	fi
+
+	if [ "$proxy_capable" != "1" ]; then
+		proxy_hint="当前系统 httpd 不支持 /apps/ 反向代理，已使用${DESKTOP_PORT}端口直连，建议升级系统到最新版本。"
+	elif [ "$proxy_running" != "1" ]; then
+		proxy_hint="当前系统 httpd proxy 未运行，已使用${DESKTOP_PORT}端口直连；正在初始化 /apps/ 入口，可稍后刷新。"
+	fi
+
+	set_apps_proxy_state "$proxy_capable" "$proxy_running" "$proxy_backend" "$proxy_hint"
+}
+
+wait_httpd_proxy_running(){
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		httpd_proxy_running && return 0
+		sleep 1
+	done
+	return 1
+}
+
 ensure_apps_forward(){
 	current_forward="$(nvram get apps_port_forward 2>/dev/null)"
+	if ! httpd_proxy_capable; then
+		detect_apps_proxy_state
+		return 0
+	fi
+
 	if [ "$current_forward" != "$APPS_PORT_FORWARD" ]; then
 		if nvram set apps_port_forward="$APPS_PORT_FORWARD" >/dev/null 2>&1 && nvram commit >/dev/null 2>&1; then
 			logger "[软件中心]: 初始化LinkEase访问入口，稍后重启httpd！"
 			schedule_httpd_restart
 		fi
+	elif ! httpd_proxy_running; then
+		logger "[软件中心]: LinkEase /apps/反向代理未运行，稍后重启httpd！"
+		schedule_httpd_restart
 	fi
-	return 0
-}
 
-verify_apps_forward(){
-	apps_health_url="http://127.0.0.1/apps/api/v1/health"
-	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
-		if fetch_url "$apps_health_url" >/dev/null 2>&1; then
-			dbus set linkease_apps_proxy_supported=1 >/dev/null 2>&1
-			dbus set linkease_apps_proxy_hint="" >/dev/null 2>&1
-			return 0
-		fi
-		sleep 1
-	done
-	dbus set linkease_apps_proxy_supported=0 >/dev/null 2>&1
-	dbus set linkease_apps_proxy_hint="当前系统 httpd 不支持 /apps/ 反向代理，已使用${DESKTOP_PORT}端口直连，建议升级系统到最新版本。" >/dev/null 2>&1
+	wait_httpd_proxy_running >/dev/null 2>&1
+	detect_apps_proxy_state
 	return 0
 }
 
@@ -227,7 +338,7 @@ start_full(){
 	kill_ee
 	start_desktop
 	start_apptunnel
-	verify_apps_forward
+	detect_apps_proxy_state
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
 }

@@ -92,11 +92,18 @@ class InstallUninstallContractTest(unittest.TestCase):
     def test_install_records_full_arch_support_without_blocking_standard_lite(self):
         expected = [
             "detect_full_runtime_support()",
+            "detect_usb2jffs_ready()",
+            "usb2jffs_is_enabled()",
+            "is_usb_jffs_running()",
+            "dbus get usb2jffs_enable",
+            "dbus get usb2jffs_mount",
+            'dbus set linkease_usb2jffs_ready=',
             "linkease_full_supported=1",
             "linkease_full_supported=0",
             "dbus set linkease_full_supported=",
             "dbus set linkease_full_support_hint=",
             "LinkEase Full 仅支持 arm64/aarch64",
+            "需要开启并启用 usb2jffs",
         ]
         for item in expected:
             self.assertIn(item, self.install)

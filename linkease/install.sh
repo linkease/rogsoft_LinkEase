@@ -46,14 +46,50 @@ detect_full_runtime_support(){
 	local ARCH=$(uname -m)
 	case "${ARCH}" in
 		aarch64|arm64)
-			dbus set linkease_full_supported=1
-			dbus set linkease_full_support_hint=""
+			if detect_usb2jffs_ready; then
+				dbus set linkease_full_supported=1
+				dbus set linkease_full_support_hint=""
+			else
+				dbus set linkease_full_supported=0
+				dbus set linkease_full_support_hint="LinkEase Full 需要开启并启用 usb2jffs 后使用。"
+			fi
 			;;
 		*)
+			dbus set linkease_usb2jffs_ready=0
 			dbus set linkease_full_supported=0
 			dbus set linkease_full_support_hint="LinkEase Full 仅支持 arm64/aarch64，当前设备可继续使用 Standard 或精简版本。"
 			;;
 	esac
+}
+
+is_usb_jffs_running(){
+	local resolved_jffs
+	resolved_jffs="$(readlink -f /jffs 2>/dev/null)"
+	case "$resolved_jffs" in
+		/tmp/mnt/*|/mnt/*|/media/*)
+			return 0
+			;;
+	esac
+
+	awk '$2 == "/jffs" { print $1 }' /proc/mounts 2>/dev/null | tail -n 1 | grep -Eq '^(/dev/sd|/dev/mapper/|/tmp/mnt/|/mnt/|/media/)'
+}
+
+usb2jffs_is_enabled(){
+	[ "$(dbus get usb2jffs_enable 2>/dev/null)" = "1" ] && return 0
+	[ "$(dbus get usb2jffs_mount 2>/dev/null)" = "1" ] && return 0
+	is_usb_jffs_running
+}
+
+detect_usb2jffs_ready(){
+	if usb2jffs_is_enabled && is_usb_jffs_running; then
+		dbus set linkease_usb2jffs_ready=1
+		dbus set linkease_usb2jffs_hint=""
+		return 0
+	fi
+
+	dbus set linkease_usb2jffs_ready=0
+	dbus set linkease_usb2jffs_hint="LinkEase Full 需要开启并启用 usb2jffs 后使用。"
+	return 1
 }
 
 platform_test(){

@@ -234,6 +234,9 @@ var PROTOCOL = "cifs";
         }
 
         function linkease_full_proxy_supported() {
+            if (typeof dbus["linkease_httpd_proxy_running"] != "undefined") {
+                return dbus["linkease_httpd_proxy_running"] == "1";
+            }
             return dbus["linkease_apps_proxy_supported"] == "1";
         }
 
@@ -274,7 +277,7 @@ var PROTOCOL = "cifs";
                 return;
             }
             if (force || (selected_linkease_edition() == "full" && !linkease_full_supported())) {
-                hint.innerHTML = dbus["linkease_full_support_hint"] || "当前设备不支持 LinkEase Full，请使用 Standard 或精简版本。";
+                hint.innerHTML = dbus["linkease_full_support_hint"] || "当前设备不支持 LinkEase Full，请使用 Standard 或精简版本；如需使用 Full，请确认需要开启并启用 usb2jffs。";
                 hint.style.display = "";
             } else {
                 hint.style.display = "none";
