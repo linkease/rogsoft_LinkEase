@@ -8,7 +8,9 @@ import argparse
 import shutil
 import stat
 import tarfile
+import tempfile
 import traceback
+import urllib.request
 from pathlib import Path
 
 parent_path = os.path.dirname(os.path.realpath(__file__))
@@ -51,6 +53,58 @@ def stage_full_artifacts(module_dir, artifact_dir):
     kaiplus_dst = module_dir / "kaiplus"
     if kaiplus_dst.exists():
         shutil.rmtree(kaiplus_dst)
+
+def download_file(url, dest_path):
+    dest_path = Path(dest_path)
+    with urllib.request.urlopen(url, timeout=120) as response:
+        with open(dest_path, "wb") as output:
+            shutil.copyfileobj(response, output)
+
+def extract_full_artifact(archive_path, artifact_dir):
+    archive_path = Path(archive_path)
+    artifact_dir = Path(artifact_dir)
+    found = set()
+    with tarfile.open(archive_path, "r:*") as archive:
+        for member in archive.getmembers():
+            if not member.isfile():
+                continue
+            binary = Path(member.name).name
+            if binary not in FULL_BINARIES or binary in found:
+                continue
+            source = archive.extractfile(member)
+            if source is None:
+                raise FileNotFoundError("cannot extract full runtime binary: %s" % member.name)
+            dst = artifact_dir / binary
+            with open(dst, "wb") as output:
+                shutil.copyfileobj(source, output)
+            make_executable(dst)
+            found.add(binary)
+    missing = set(FULL_BINARIES) - found
+    if missing:
+        raise FileNotFoundError("full artifact missing runtime binaries: %s" % ", ".join(sorted(missing)))
+
+def stage_downloaded_full_artifact(module_dir, full_artifact_url, full_artifact_sha256, root):
+    full_artifact_url = str(full_artifact_url or "").strip()
+    full_artifact_sha256 = str(full_artifact_sha256 or "").strip().lower()
+    if not full_artifact_url:
+        raise ValueError("full_artifact_url is required when --artifact-dir is not provided")
+    if not full_artifact_sha256:
+        raise ValueError("full_artifact_sha256 is required when --artifact-dir is not provided")
+
+    with tempfile.TemporaryDirectory(prefix=".linkease-full-", dir=str(root)) as temp_dir:
+        temp_path = Path(temp_dir)
+        archive_path = temp_path / "full-artifact.tar.gz"
+        artifact_dir = temp_path / "artifact"
+        artifact_dir.mkdir()
+        download_file(full_artifact_url, archive_path)
+        actual_sha256 = file_sha256(archive_path)
+        if actual_sha256.lower() != full_artifact_sha256:
+            raise ValueError(
+                "full artifact sha256 mismatch: expected %s, got %s"
+                % (full_artifact_sha256, actual_sha256)
+            )
+        extract_full_artifact(archive_path, artifact_dir)
+        stage_full_artifacts(module_dir, artifact_dir)
 
 def validate_module_name(module):
     module = str(module or "").strip()
@@ -109,7 +163,12 @@ def build_module(root=None, artifact_dir=None, full_artifact_url=None, full_arti
     if artifact_dir:
         stage_full_artifacts(module_path, artifact_dir)
     elif not skip_download:
-        raise ValueError("full artifact staging requires --artifact-dir or an implemented release download")
+        stage_downloaded_full_artifact(
+            module_path,
+            conf.get("full_artifact_url"),
+            conf.get("full_artifact_sha256"),
+            root,
+        )
 
     with open(module_path / "version", "w", encoding="utf-8") as fw:
         fw.write(conf["version"] + "\n")
