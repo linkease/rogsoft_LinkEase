@@ -211,10 +211,6 @@ install_now(){
 	if [ "${ENABLE}" == "1" -o -n "$(pidof ${APPTUNNEL_BIN})" ];then
 		killall ${APPTUNNEL_BIN} > /dev/null 2>&1
 	fi
-	if [ "${ENABLE}" == "1" -o -n "$(pidof kaiplus_bin)" ];then
-		killall kaiplus_bin > /dev/null 2>&1
-	fi
-
 	# remove some file first
 	find /koolshare/init.d -name "*linkease.sh" | xargs rm -rf >/dev/null 2>&1
 	migrate_betterapps_dbus
@@ -228,22 +224,12 @@ install_now(){
 	cp -rf /tmp/${module}/scripts/* /koolshare/scripts/
 	cp -rf /tmp/${module}/webs/* /koolshare/webs/
 	cp -rf /tmp/${module}/uninstall.sh /koolshare/scripts/uninstall_${module}.sh
-	if [ -d "/tmp/${module}/kaiplus" ];then
-		rm -rf /koolshare/linkease/kaiplus
-		mkdir -p /koolshare/linkease
-		cp -rf /tmp/${module}/kaiplus /koolshare/linkease/
-	fi
-
 	# Permissions
 	chmod 755 /koolshare/scripts/${module}_*.sh >/dev/null 2>&1
 	chmod 755 /koolshare/bin/${DESKTOP_BIN} >/dev/null 2>&1
 	chmod 755 /koolshare/bin/${APPTUNNEL_BIN} >/dev/null 2>&1
 	chmod 755 /koolshare/bin/link-ease >/dev/null 2>&1 || true
 	chmod 755 /koolshare/bin/linkease-plugins/aria2.sh >/dev/null 2>&1
-	chmod 755 /koolshare/linkease/kaiplus/bin/kaiplus_bin >/dev/null 2>&1 || true
-	chmod 755 /koolshare/linkease/kaiplus/helpers/kaiplus_workspace_tool >/dev/null 2>&1 || true
-	find /koolshare/linkease/kaiplus/defaults -type f -path '*/scripts/*' -exec chmod 755 {} \; >/dev/null 2>&1 || true
-
 	# make start up script link
 	if [ ! -L "/koolshare/init.d/S99${module}.sh" -a -f "/koolshare/scripts/${module}_config.sh" ];then
 		ln -sf /koolshare/scripts/${module}_config.sh /koolshare/init.d/S99${module}.sh

@@ -48,14 +48,9 @@ def stage_full_artifacts(module_dir, artifact_dir):
         shutil.copy2(src, dst)
         make_executable(dst)
 
-    kaiplus_src = artifact_dir / "kaiplus"
-    if not kaiplus_src.is_dir():
-        raise FileNotFoundError("missing kaiplus directory: %s" % kaiplus_src)
     kaiplus_dst = module_dir / "kaiplus"
-    copy_tree(kaiplus_src, kaiplus_dst)
-    for script in kaiplus_dst.glob("defaults/**/scripts/*"):
-        if script.is_file():
-            make_executable(script)
+    if kaiplus_dst.exists():
+        shutil.rmtree(kaiplus_dst)
 
 def validate_module_name(module):
     module = str(module or "").strip()
@@ -137,7 +132,7 @@ def build_module(root=None, artifact_dir=None, full_artifact_url=None, full_arti
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--artifact-dir", help="Directory containing linkease-desktop, apptunnel-client, and kaiplus")
+    parser.add_argument("--artifact-dir", help="Directory containing linkease-desktop and apptunnel-client")
     parser.add_argument("--full-artifact-url", help="Release artifact URL recorded into config metadata")
     parser.add_argument("--full-artifact-sha256", help="Release artifact sha256 recorded into config metadata")
     parser.add_argument("--skip-download", action="store_true", help="Skip release artifact download; useful for tests")

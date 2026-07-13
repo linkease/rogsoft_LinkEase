@@ -19,17 +19,8 @@ export SERVER_PORT=${DESKTOP_PORT}
 export SERVER_MODE=release
 export SERVER_BASE_PATH=/apps/
 export LINKEASE_EDITION=router-lite
-export KAIPLUS_ENABLED=1
-export KAIPLUS_BIN=${APP_DIR}/kaiplus/bin/kaiplus_bin
-export KAIPLUS_STATIC_DIR=${APP_DIR}/kaiplus/www
-export KAIPLUS_DEFAULTS_DIR=${APP_DIR}/kaiplus/defaults
-export KAIPLUS_SYSTEM_ROLE=asusgo
-export KAIPLUS_BASE_PATH=/apps/kaiplus/
-export KAIPLUS_ADDR=127.0.0.1:19291
-export KAIPLUS_PROXY_TARGET=http://127.0.0.1:19291
-export KAIPLUS_WORKSPACE_TOOL_BINARY=${APP_DIR}/kaiplus/helpers/kaiplus_workspace_tool
-export KAIPLUS_WORKSPACE_TOOL_INSTALL_DIR=${APP_DIR}/kaiplus/helpers
-export REASONIX_CREDENTIALS_STORE=file
+export KAIPLUS_ENABLED=0
+KAIPLUS_PROXY_TARGET=""
 
 read_persisted_data_disk(){
 	persisted_config=${APP_DIR}/data/bootstrap/system/data-root.json
@@ -117,16 +108,40 @@ configure_data_paths(){
 	export USER_DATA_PATH=${LINKEASE_DATA_ROOT}/users/admin
 	export SYSTEM_DATA_PATH=${LINKEASE_DATA_ROOT}/system
 	export TEMP_PATH=${LINKEASE_DATA_ROOT}/tmp
-	export KAIPLUS_HOME=${LINKEASE_DATA_ROOT}/kaiplus
 }
 
 configure_data_paths
 
+normalize_kaiplus_port(){
+	kaiplus_port=8189
+	case "$1" in
+		''|*[!0-9]*) echo "$kaiplus_port"; return 0 ;;
+	esac
+	if [ "$1" -ge 1 ] 2>/dev/null && [ "$1" -le 65535 ] 2>/dev/null; then
+		echo "$1"
+	else
+		echo "$kaiplus_port"
+	fi
+}
+
+resolve_kaiplus_proxy_target(){
+	KAIPLUS_PROXY_TARGET=""
+	[ -x /koolshare/scripts/kaiplus_config.sh ] || return 0
+	[ -x /koolshare/bin/kaiplus_bin ] || return 0
+
+	kaiplus_port="$(dbus get kaiplus_port 2>/dev/null)"
+	kaiplus_port="$(normalize_kaiplus_port "$kaiplus_port")"
+	KAIPLUS_PROXY_TARGET="http://127.0.0.1:${kaiplus_port}"
+	export KAIPLUS_PROXY_TARGET="${KAIPLUS_PROXY_TARGET}"
+}
+
+resolve_kaiplus_proxy_target
+
 ensure_dirs(){
 	if [ "$LINKEASE_BOOTSTRAP_FALLBACK" = "1" ]; then
-		mkdir -p "$USER_DATA_PATH" "$SYSTEM_DATA_PATH" "$TEMP_PATH" "$KAIPLUS_HOME"
+		mkdir -p "$USER_DATA_PATH" "$SYSTEM_DATA_PATH" "$TEMP_PATH"
 	else
-		mkdir -p "$USER_DATA_PATH" "$SYSTEM_DATA_PATH" "$TEMP_PATH" "$KAIPLUS_HOME" "$LINKEASE_RECYCLE_ROOT"
+		mkdir -p "$USER_DATA_PATH" "$SYSTEM_DATA_PATH" "$TEMP_PATH" "$LINKEASE_RECYCLE_ROOT"
 	fi
 }
 
@@ -165,7 +180,6 @@ kill_ee(){
 	killall link-ease >/dev/null 2>&1
 	killall linkease-desktop >/dev/null 2>&1
 	killall apptunnel-client >/dev/null 2>&1
-	killall kaiplus_bin >/dev/null 2>&1
 	rm -f $DESKTOP_PID_FILE $APPTUNNEL_PID_FILE >/dev/null 2>&1
 }
 

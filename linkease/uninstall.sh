@@ -5,8 +5,6 @@ cd /tmp
 killall link-ease > /dev/null 2>&1
 killall linkease-desktop > /dev/null 2>&1
 killall apptunnel-client > /dev/null 2>&1
-killall kaiplus_bin > /dev/null 2>&1
-
 rm -rf /koolshare/init.d/*linkease.sh
 rm -rf /koolshare/init.d/*LinkEase.sh
 rm -rf /koolshare/bin/link-ease
