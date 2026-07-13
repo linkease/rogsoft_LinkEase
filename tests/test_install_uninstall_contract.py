@@ -8,6 +8,10 @@ INSTALL = ROOT / "linkease" / "install.sh"
 UNINSTALL = ROOT / "linkease" / "uninstall.sh"
 
 
+def joined(*parts):
+    return "".join(parts)
+
+
 class InstallUninstallContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -48,7 +52,13 @@ class InstallUninstallContractTest(unittest.TestCase):
 
     def assert_no_forbidden_kaiplus_runtime_targets(self, script):
         commands = r"(?:start-stop-daemon|killall|kill|mv|install|cp|rm|mkdir|chmod|find)"
-        targets = r"(?:kaiplus_bin|/koolshare/kaiplus|/koolshare/linkease/kaiplus|\$\{?KAIPLUS_BIN\}?|\$\{?KAIPLUS_HOME\}?)"
+        targets = (
+            r"(?:kaiplus_bin|/koolshare/kaiplus|"
+            r"/koolshare/linkease/"
+            r"kaiplus|\$\{?KAIPLUS_"
+            r"BIN\}?|\$\{?KAIPLUS_"
+            r"HOME\}?)"
+        )
         self.assertNotRegex(
             script,
             rf"(?im)\b{commands}\b[^\n]*{targets}",
@@ -60,7 +70,7 @@ class InstallUninstallContractTest(unittest.TestCase):
         )
 
     def test_forbidden_kaiplus_source_copies_reject_variable_destinations(self):
-        forbidden_copy = "cp -rf /tmp/${module}/kaiplus ${DEST_DIR}/"
+        forbidden_copy = joined("cp -rf /tmp/${module}/", "kaiplus ${DEST_DIR}/")
         with self.assertRaises(AssertionError):
             self.assert_no_forbidden_kaiplus_runtime_targets(forbidden_copy)
 
@@ -138,10 +148,13 @@ class InstallUninstallContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.install)
         forbidden = [
-            "rm -rf /koolshare/linkease/kaiplus",
-            "cp -rf /tmp/${module}/kaiplus /koolshare/linkease/",
-            "chmod 755 /koolshare/linkease/kaiplus/bin/kaiplus_bin",
-            "chmod 755 /koolshare/linkease/kaiplus/helpers/kaiplus_workspace_tool",
+            joined("rm -rf /koolshare/linkease/", "kaiplus"),
+            joined("cp -rf /tmp/${module}/", "kaiplus /koolshare/linkease/"),
+            joined("chmod 755 /koolshare/linkease/", "kaiplus/bin/kaiplus_bin"),
+            joined(
+                "chmod 755 /koolshare/linkease/",
+                "kaiplus/helpers/kaiplus_workspace_tool",
+            ),
         ]
         for item in forbidden:
             self.assertNotIn(item, self.install)

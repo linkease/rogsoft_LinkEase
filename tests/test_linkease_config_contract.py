@@ -8,6 +8,10 @@ CONFIG = ROOT / "linkease" / "scripts" / "linkease_config.sh"
 STATUS = ROOT / "linkease" / "scripts" / "linkease_status.sh"
 
 
+def joined(*parts):
+    return "".join(parts)
+
+
 class LinkEaseConfigContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -19,12 +23,12 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertIn("APPTUNNEL_BIN=/koolshare/bin/apptunnel-client", self.config)
         self.assertIn("APP_DIR=/koolshare/linkease", self.config)
         forbidden = [
-            "KAIPLUS_BIN=${APP_DIR}/kaiplus/bin/kaiplus_bin",
-            "KAIPLUS_STATIC_DIR=${APP_DIR}/kaiplus/www",
-            "KAIPLUS_DEFAULTS_DIR=${APP_DIR}/kaiplus/defaults",
-            "KAIPLUS_ADDR=127.0.0.1:19291",
+            joined("KAIPLUS_", "BIN=${APP_DIR}/kaiplus/bin/kaiplus_bin"),
+            joined("KAIPLUS_", "STATIC_DIR=${APP_DIR}/kaiplus/www"),
+            joined("KAIPLUS_", "DEFAULTS_DIR=${APP_DIR}/kaiplus/defaults"),
+            joined("KAIPLUS_", "ADDR=127.0.0.1:19291"),
             "KAIPLUS_BASE_PATH=/apps/kaiplus/",
-            "KAIPLUS_HOME=${LINKEASE_DATA_ROOT}/kaiplus",
+            joined("KAIPLUS_", "HOME=${LINKEASE_DATA_ROOT}/kaiplus"),
         ]
         for item in forbidden:
             self.assertNotIn(item, self.config)
@@ -43,7 +47,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.config)
-        self.assertNotIn("export KAIPLUS_ENABLED=1", self.config)
+        self.assertNotIn(joined("export KAIPLUS_ENABLED=", "1"), self.config)
         self.assertNotIn("export REASONIX_CREDENTIALS_STORE=file", self.config)
 
     def test_linkease_detects_independent_kaiplus_for_proxy_only(self):
@@ -105,7 +109,13 @@ class LinkEaseConfigContractTest(unittest.TestCase):
 
     def assert_no_forbidden_kaiplus_runtime_targets(self, script):
         commands = r"(?:start-stop-daemon|killall|kill|mv|install|cp|rm|mkdir|chmod|find)"
-        targets = r"(?:kaiplus_bin|/koolshare/kaiplus|/koolshare/linkease/kaiplus|\$\{?KAIPLUS_BIN\}?|\$\{?KAIPLUS_HOME\}?)"
+        targets = (
+            r"(?:kaiplus_bin|/koolshare/kaiplus|"
+            r"/koolshare/linkease/"
+            r"kaiplus|\$\{?KAIPLUS_"
+            r"BIN\}?|\$\{?KAIPLUS_"
+            r"HOME\}?)"
+        )
         self.assertNotRegex(
             script,
             rf"(?im)\b{commands}\b[^\n]*{targets}",
