@@ -210,6 +210,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "ensure_apps_forward()",
             "verify_apps_forward()",
             'apps_health_url="http://127.0.0.1/apps/api/v1/health"',
+            "for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15",
             'fetch_url "$apps_health_url"',
             "dbus set linkease_apps_proxy_supported=1",
             'dbus set linkease_apps_proxy_hint=""',
