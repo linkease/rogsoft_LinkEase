@@ -28,11 +28,11 @@ class BuildScriptTest(unittest.TestCase):
         self.assertEqual(config["home_url"], "Module_linkease.asp")
         self.assertEqual(
             config["full_artifact_url"],
-            "https://github.com/linkease/linkease-desktop/releases/download/prebuild/linkease-asus-full-arm64-v3.0.0.tar.gz",
+            "https://github.com/linkease/linkease-desktop/releases/download/linkease-full-v3.0.0/linkease-full-binary-3.0.0.tar.gz",
         )
         self.assertEqual(
             config["full_artifact_sha256"],
-            "6ae7ddbe28ca07e9e2a51476b0ae7ffdef1d1fa3d4f9b48260be700c1fff0833",
+            "5a9b8a613ff6746dbfcac0afa8a2d22186f85f73a6bac8d26a8b042d218147b9",
         )
 
     def test_build_stages_full_binaries_without_kaiplus(self):
