@@ -42,14 +42,16 @@ get_fw_type() {
 	fi
 }
 
-platform_arch_test(){
+detect_full_runtime_support(){
 	local ARCH=$(uname -m)
 	case "${ARCH}" in
 		aarch64|arm64)
+			dbus set linkease_full_supported=1
+			dbus set linkease_full_support_hint=""
 			;;
 		*)
-			echo_date "LinkEase full首版仅支持arm64/aarch64"
-			exit_install 1
+			dbus set linkease_full_supported=0
+			dbus set linkease_full_support_hint="LinkEase Full 仅支持 arm64/aarch64，当前设备可继续使用 Standard 或精简版本。"
 			;;
 	esac
 }
@@ -193,6 +195,16 @@ migrate_betterapps_dbus(){
 	migrate_dbus_value_if_empty betterapps_data_root linkease_data_root
 }
 
+init_linkease_edition(){
+	if [ -z "$(dbus get ${module}_edition)" ];then
+		if [ "$(dbus get ${module}_simple)" = "1" ];then
+			dbus set ${module}_edition=lite
+		else
+			dbus set ${module}_edition=standard
+		fi
+	fi
+}
+
 install_now(){
 	# default value
 	local TITLE="易有云"
@@ -243,6 +255,8 @@ install_now(){
 
 	# dbus value
 	echo_date "设置插件默认参数..."
+	detect_full_runtime_support
+	init_linkease_edition
 	dbus set ${module}_version="${PLVER}"
 	dbus set softcenter_module_${module}_version="${PLVER}"
 	dbus set softcenter_module_${module}_install="1"
@@ -265,7 +279,6 @@ install(){
 	get_model
 	get_fw_type
 	platform_test
-	platform_arch_test
 	install_now
 }
 

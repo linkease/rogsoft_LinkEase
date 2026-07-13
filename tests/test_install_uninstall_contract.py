@@ -89,13 +89,27 @@ class InstallUninstallContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.install)
 
-    def test_install_rejects_non_arm64_full_runtime(self):
+    def test_install_records_full_arch_support_without_blocking_standard_lite(self):
         expected = [
-            "platform_arch_test()",
-            "uname -m",
-            "aarch64",
-            "arm64",
-            "LinkEase full首版仅支持arm64/aarch64",
+            "detect_full_runtime_support()",
+            "linkease_full_supported=1",
+            "linkease_full_supported=0",
+            "dbus set linkease_full_supported=",
+            "dbus set linkease_full_support_hint=",
+            "LinkEase Full 仅支持 arm64/aarch64",
+        ]
+        for item in expected:
+            self.assertIn(item, self.install)
+        self.assertNotIn("platform_arch_test", self.install)
+        self.assertNotIn("LinkEase full首版仅支持arm64/aarch64", self.install)
+
+    def test_install_initializes_edition_without_overwriting_existing_value(self):
+        expected = [
+            "init_linkease_edition()",
+            'if [ -z "$(dbus get ${module}_edition)" ];then',
+            'if [ "$(dbus get ${module}_simple)" = "1" ];then',
+            "dbus set ${module}_edition=lite",
+            "dbus set ${module}_edition=standard",
         ]
         for item in expected:
             self.assertIn(item, self.install)
