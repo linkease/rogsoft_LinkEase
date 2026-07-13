@@ -53,6 +53,20 @@ class InstallUninstallContractTest(unittest.TestCase):
             script,
             rf"(?im)\b{commands}\b[^\n]*{targets}",
         )
+        kaiplus_sources = r"/tmp/(?:\$\{?module\}?|linkease)/kaiplus(?:[\s/'\"]|$)"
+        self.assertNotRegex(
+            script,
+            rf"(?im)\bcp\b[^\n]*{kaiplus_sources}",
+        )
+
+    def test_forbidden_kaiplus_source_copies_reject_variable_destinations(self):
+        forbidden_copy = "cp -rf /tmp/${module}/kaiplus ${DEST_DIR}/"
+        with self.assertRaises(AssertionError):
+            self.assert_no_forbidden_kaiplus_runtime_targets(forbidden_copy)
+
+        forbidden_linkease_copy = "cp -rf /tmp/linkease/kaiplus \"${DEST_DIR}/\""
+        with self.assertRaises(AssertionError):
+            self.assert_no_forbidden_kaiplus_runtime_targets(forbidden_linkease_copy)
 
     def test_install_keeps_module_identity_and_full_binary_names(self):
         expected = [
