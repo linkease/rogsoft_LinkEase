@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -12,6 +13,38 @@ class InstallUninstallContractTest(unittest.TestCase):
     def setUpClass(cls):
         cls.install = INSTALL.read_text(encoding="utf-8")
         cls.uninstall = UNINSTALL.read_text(encoding="utf-8")
+
+    def assert_no_external_linkease_data_deletion(self, script):
+        data_reference = re.compile(
+            r"(?:\.linkease_data|LINKEASE_DATA_(?:ROOT|DISK)|"
+            r"(?:linkease|betterapps)_data_(?:disk|root|root_parent))",
+            re.IGNORECASE,
+        )
+        destructive = re.compile(r"\b(?:rm|rmdir)\b|\bfind\b.*\s-delete\b")
+        deletion_lines = [
+            line for line in script.splitlines() if destructive.search(line)
+        ]
+        for line in deletion_lines:
+            self.assertIsNone(
+                data_reference.search(line),
+                "destructive command may remove external .linkease_data: %s" % line,
+            )
+
+        assigned_external_data_vars = set()
+        for line in script.splitlines():
+            match = re.match(
+                r"^\s*(?:local\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$", line
+            )
+            if match and data_reference.search(match.group(2)):
+                assigned_external_data_vars.add(match.group(1))
+        for variable in assigned_external_data_vars:
+            variable_reference = re.compile(r"\$\{?%s\}?" % re.escape(variable))
+            for line in deletion_lines:
+                self.assertIsNone(
+                    variable_reference.search(line),
+                    "destructive command may remove external data via %s: %s"
+                    % (variable, line),
+                )
 
     def test_install_keeps_module_identity_and_full_binary_names(self):
         expected = [
@@ -43,7 +76,10 @@ class InstallUninstallContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.install)
-        self.assertNotIn("killall kaiplus_bin", self.install)
+        self.assertNotRegex(
+            self.install,
+            r"(?m)^\s*killall\s+['\"]?(?:kaiplus_bin|\$\{?KAIPLUS_BIN\}?)",
+        )
 
     def test_install_cleans_betterapps_plugin_and_metadata(self):
         expected = [
@@ -90,6 +126,11 @@ class InstallUninstallContractTest(unittest.TestCase):
         ]
         for item in forbidden:
             self.assertNotIn(item, self.install)
+        self.assertNotRegex(
+            self.install,
+            r"(?mi)^\s*(?:rm|cp|mkdir|chmod|find)\b.*kaiplus",
+        )
+        self.assert_no_external_linkease_data_deletion(self.install)
 
     def test_uninstall_removes_full_linkease_and_betterapps_leftovers_without_kaiplus(self):
         expected = [
@@ -109,9 +150,15 @@ class InstallUninstallContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.uninstall)
-        self.assertNotIn("killall kaiplus_bin", self.uninstall)
-        self.assertNotIn("rm -rf /koolshare/bin/kaiplus_bin", self.uninstall)
-        self.assertNotIn("rm -rf /koolshare/kaiplus", self.uninstall)
+        self.assertNotRegex(
+            self.uninstall,
+            r"(?mi)^\s*killall\s+['\"]?(?:kaiplus_bin|\$\{?KAIPLUS_BIN\}?)",
+        )
+        self.assertNotRegex(
+            self.uninstall,
+            r"(?mi)^\s*(?:rm|rmdir|find)\b.*kaiplus",
+        )
+        self.assert_no_external_linkease_data_deletion(self.uninstall)
 
 
 if __name__ == "__main__":

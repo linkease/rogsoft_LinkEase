@@ -2,7 +2,6 @@ import importlib.util
 import json
 import py_compile
 import shutil
-import stat
 import tarfile
 import tempfile
 import unittest
@@ -57,6 +56,15 @@ class BuildScriptTest(unittest.TestCase):
             self.assertTrue((root / "linkease" / "bin" / "linkease-desktop").is_file())
             self.assertTrue((root / "linkease" / "bin" / "apptunnel-client").is_file())
             self.assertFalse((root / "linkease" / "kaiplus").exists())
+            with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
+                members = archive.getnames()
+            self.assertFalse(
+                any(
+                    name == "linkease/kaiplus"
+                    or name.startswith("linkease/kaiplus/")
+                    for name in members
+                )
+            )
 
     def test_build_module_rejects_path_traversal_module_name(self):
         module = self.load_build_module()

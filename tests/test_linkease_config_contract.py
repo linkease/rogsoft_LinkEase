@@ -28,6 +28,10 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         ]
         for item in forbidden:
             self.assertNotIn(item, self.config)
+        self.assertNotRegex(
+            self.config,
+            r"(?m)^\s*(?:export\s+)?KAIPLUS_(?:BIN|STATIC_DIR|DEFAULTS_DIR|HOME)\s*=\s*['\"]?\$\{?APP_DIR\}?/",
+        )
 
     def test_full_runtime_exports_apps_and_disables_embedded_kaiplus(self):
         expected = [
@@ -97,7 +101,18 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.config)
         self.assertNotIn("start_kaiplus", self.config)
-        self.assertNotIn("-x $KAIPLUS_BIN", self.config)
+        self.assertNotRegex(
+            self.config,
+            r"(?m)^\s*(?:if\s+)?\[\s+-x\s+['\"]?\$\{?KAIPLUS_BIN\}?",
+        )
+        self.assertNotRegex(
+            self.config,
+            r"(?m)^\s*killall\s+['\"]?\$\{?KAIPLUS_BIN\}?",
+        )
+        self.assertNotRegex(
+            self.config,
+            r"(?m)^\s*killall\s+['\"]?kaiplus_bin['\"]?",
+        )
 
     def test_apps_forward_is_linkease_owned(self):
         self.assertIn('APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"', self.config)
