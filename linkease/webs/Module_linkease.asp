@@ -141,8 +141,8 @@ var PROTOCOL = "cifs";
         var noChange_status = 0;
         var _responseLen;
         var r_lan_ipaddr = "<% nvram_get(lan_ipaddr); %>"
-        var params_check = ["linkease_enable","linkease_simple"];
-        var params_input = [];
+        var params_check = ["linkease_enable"];
+        var params_input = ["linkease_edition"];
         var dbus = {}
 
         function init() {
@@ -179,6 +179,32 @@ var PROTOCOL = "cifs";
                     E(params_check[i]).checked = dbus[params_check[i]] == "1";
                 }
             }
+            set_linkease_edition(normalize_linkease_edition(dbus["linkease_edition"], dbus["linkease_simple"]));
+        }
+
+        function normalize_linkease_edition(edition, simple) {
+            if (edition == "standard" || edition == "full" || edition == "lite") {
+                return edition;
+            }
+            return simple == "1" ? "lite" : "standard";
+        }
+
+        function selected_linkease_edition() {
+            var radios = document.getElementsByName("linkease_edition");
+            for (var i = 0; i < radios.length; i++) {
+                if (radios[i].checked) {
+                    return radios[i].value;
+                }
+            }
+            return "standard";
+        }
+
+        function set_linkease_edition(edition) {
+            edition = normalize_linkease_edition(edition, "0");
+            var radios = document.getElementsByName("linkease_edition");
+            for (var i = 0; i < radios.length; i++) {
+                radios[i].checked = radios[i].value == edition;
+            }
         }
 
         function save() {
@@ -190,6 +216,8 @@ var PROTOCOL = "cifs";
             for (var i = 0; i < params_check.length; i++) {
                 dbus[params_check[i]] = E(params_check[i]).checked ? '1' : '0';
             }
+            dbus["linkease_edition"] = selected_linkease_edition();
+            dbus["linkease_simple"] = dbus["linkease_edition"] == "lite" ? "1" : "0";
             showLoading();
             push_data(dbus, 1);
         }
@@ -211,15 +239,43 @@ var PROTOCOL = "cifs";
             });
         }
 
+        function current_browser_origin() {
+            return window.location.protocol + "//" + window.location.host;
+        }
+
+        function linkease_full_proxy_supported() {
+            return dbus["linkease_apps_proxy_supported"] == "1";
+        }
+
+        function build_full_url() {
+            if (linkease_full_proxy_supported()) {
+                return current_browser_origin() + "/apps/";
+            }
+            return "http://" + r_lan_ipaddr + ":19290/apps/";
+        }
+
+        function update_proxy_hint() {
+            var hint = E("linkease_proxy_hint");
+            if (!hint) {
+                return;
+            }
+            if (selected_linkease_edition() == "full" && !linkease_full_proxy_supported()) {
+                E("linkease_proxy_hint").style.display = "";
+            } else {
+                E("linkease_proxy_hint").style.display = "none";
+            }
+        }
+
         function generate_link() {
             var webite = E("linkease_website");  //访问linkease
             var linkease_guide = E("linkease_guide");    //配置中心
             var legacy = E("linkease_legacy");  //旧版入口
-            var full_url = "/apps/";
+            var full_url = build_full_url();
             var legacy_url = "http://" + r_lan_ipaddr + ":8897";
             webite.href = full_url;
             linkease_guide.href = full_url;
             legacy.href = legacy_url;
+            update_proxy_hint();
             if (dbus["linkease_enable"] != "1") {
                 webite.style.display = "none";
                 linkease_guide.style.display = "none";
@@ -710,21 +766,13 @@ var PROTOCOL = "cifs";
                                             </tr>
 											<tr>
                                                 <th>
-                                                    <label>精简版（内存小于512M推荐）</label>
+                                                    <label>运行版本</label>
                                                 </th>
                                                 <td colspan="2">
-                                                    <div class="switch_field" style="display:table-cell;float: left;">
-                                                        <label for="linkease_simple">
-                                                            <input id="linkease_simple" class="switch" type="checkbox"
-                                                                style="display: none;">
-                                                            <div class="switch_container">
-                                                                <div class="switch_bar"></div>
-                                                                <div class="switch_circle transition_style">
-                                                                    <div></div>
-                                                                </div>
-                                                            </div>
-                                                        </label>
-                                                    </div>
+                                                    <label><input type="radio" name="linkease_edition" value="standard" onclick="generate_link();"> Standard 版本</label>
+                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="full" onclick="generate_link();"> Full 版本</label>
+                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="lite" onclick="generate_link();"> 精简版本（内存小于512M推荐）</label>
+                                                    <div id="linkease_proxy_hint" style="display:none;margin-top:8px;color:#FC0;">当前系统 httpd 不支持 /apps/ 反向代理，已使用端口直连。建议升级系统到最新版本以获得更好的访问体验。</div>
                                                 </td>
                                             </tr>
                                             <tr id="linkease_status">

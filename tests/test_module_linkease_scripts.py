@@ -33,7 +33,7 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
         self.assertRegex(self.html, guard_pattern)
 
     def test_full_ui_primary_entry_uses_apps_proxy(self):
-        self.assertIn('var full_url = "/apps/";', self.html)
+        self.assertIn('var full_url = build_full_url();', self.html)
         self.assertIn('webite.href = full_url;', self.html)
         self.assertIn('id="linkease_website"', self.html)
         self.assertIn('打开LinkEase', self.html)
@@ -47,6 +47,58 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
     def test_config_center_uses_apps_not_legacy_guide(self):
         self.assertNotIn(':8897/guide/index.html', self.html)
         self.assertIn('linkease_guide.href = full_url;', self.html)
+
+    def test_edition_selector_replaces_simple_switch(self):
+        expected = [
+            'var params_check = ["linkease_enable"];',
+            'var params_input = ["linkease_edition"];',
+            'function normalize_linkease_edition(edition, simple)',
+            'function selected_linkease_edition()',
+            'function set_linkease_edition(edition)',
+            'name="linkease_edition"',
+            'value="standard"',
+            'value="full"',
+            'value="lite"',
+            'Standard 版本',
+            'Full 版本',
+            '精简版本（内存小于512M推荐）',
+        ]
+        for item in expected:
+            self.assertIn(item, self.html)
+        self.assertNotIn('<label>精简版（内存小于512M推荐）</label>', self.html)
+        self.assertNotIn('id="linkease_simple" class="switch"', self.html)
+
+    def test_edition_save_preserves_legacy_simple_key(self):
+        expected = [
+            'dbus["linkease_edition"] = selected_linkease_edition();',
+            'dbus["linkease_simple"] = dbus["linkease_edition"] == "lite" ? "1" : "0";',
+            'set_linkease_edition(normalize_linkease_edition(dbus["linkease_edition"], dbus["linkease_simple"]));',
+        ]
+        for item in expected:
+            self.assertIn(item, self.html)
+
+    def test_full_url_uses_proxy_or_direct_port(self):
+        expected = [
+            'function current_browser_origin()',
+            'return window.location.protocol + "//" + window.location.host;',
+            'function linkease_full_proxy_supported()',
+            'return dbus["linkease_apps_proxy_supported"] == "1";',
+            'function build_full_url()',
+            'return current_browser_origin() + "/apps/";',
+            'return "http://" + r_lan_ipaddr + ":19290/apps/";',
+        ]
+        for item in expected:
+            self.assertIn(item, self.html)
+
+    def test_full_proxy_upgrade_hint_is_present(self):
+        expected = [
+            'id="linkease_proxy_hint"',
+            '当前系统 httpd 不支持 /apps/ 反向代理',
+            '建议升级系统到最新版本',
+            'E("linkease_proxy_hint").style.display',
+        ]
+        for item in expected:
+            self.assertIn(item, self.html)
 
 
 if __name__ == "__main__":
