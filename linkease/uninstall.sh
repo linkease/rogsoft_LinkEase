@@ -3,11 +3,13 @@ source /koolshare/scripts/base.sh
 
 cd /tmp
 killall link-ease > /dev/null 2>&1
+killall linkease-full > /dev/null 2>&1
 killall linkease-desktop > /dev/null 2>&1
 killall apptunnel-client > /dev/null 2>&1
 rm -rf /koolshare/init.d/*linkease.sh
 rm -rf /koolshare/init.d/*LinkEase.sh
 rm -rf /koolshare/bin/link-ease
+rm -rf /koolshare/bin/linkease-full
 rm -rf /koolshare/bin/linkease-desktop
 rm -rf /koolshare/bin/apptunnel-client
 rm -rf /koolshare/bin/linkease-plugins

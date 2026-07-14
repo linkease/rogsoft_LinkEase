@@ -27,16 +27,17 @@ class BuildScriptTest(unittest.TestCase):
 
         self.assertEqual(config["module"], "linkease")
         self.assertEqual(config["home_url"], "Module_linkease.asp")
+        self.assertEqual(config["version"], "2.17.6")
         self.assertEqual(
             config["full_artifact_url"],
-            "https://fw0.koolcenter.com/binary/LinkEase/LinkEaseFull/linkease-full-binary-3.0.0.tar.gz",
+            "https://fw0.koolcenter.com/binary/LinkEase/LinkEaseFull/linkease-full-binary-3.0.1.tar.gz",
         )
         self.assertEqual(
             config["full_artifact_sha256"],
-            "5826ab1fe346c6fb82409b6edf731558671d00a1a916b2b31cd65e2d4d3ad941",
+            "415fbb73949b3b42af4b7812402aa75e813266d5e9a22428c399df16ddb76144",
         )
 
-    def test_build_stages_full_binaries_without_kaiplus(self):
+    def test_build_stages_full_binary_without_kaiplus(self):
         module = self.load_build_module()
 
         with tempfile.TemporaryDirectory() as td:
@@ -45,10 +46,9 @@ class BuildScriptTest(unittest.TestCase):
             shutil.copy2(ROOT / "config.json.js", root / "config.json.js")
             artifact = root / "artifact"
             artifact.mkdir()
-            for name in ("linkease-desktop", "apptunnel-client"):
-                path = artifact / name
-                path.write_text("#!/bin/sh\n", encoding="utf-8")
-                path.chmod(0o755)
+            path = artifact / "linkease-full"
+            path.write_text("#!/bin/sh\n", encoding="utf-8")
+            path.chmod(0o755)
             kaiplus = artifact / "kaiplus"
             kaiplus.mkdir()
             (kaiplus / "marker").write_text("must not be staged\n", encoding="utf-8")
@@ -57,8 +57,9 @@ class BuildScriptTest(unittest.TestCase):
 
             self.assertEqual(conf["module"], "linkease")
             self.assertTrue((root / "linkease.tar.gz").is_file())
-            self.assertTrue((root / "linkease" / "bin" / "linkease-desktop").is_file())
-            self.assertTrue((root / "linkease" / "bin" / "apptunnel-client").is_file())
+            self.assertTrue((root / "linkease" / "bin" / "linkease-full").is_file())
+            self.assertFalse((root / "linkease" / "bin" / "linkease-desktop").exists())
+            self.assertFalse((root / "linkease" / "bin" / "apptunnel-client").exists())
             self.assertFalse((root / "linkease" / "kaiplus").exists())
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
@@ -79,10 +80,9 @@ class BuildScriptTest(unittest.TestCase):
             artifact_root = root / "artifact-src"
             (artifact_root / "bundle" / "bin").mkdir(parents=True)
             (artifact_root / "bundle" / "kaiplus").mkdir()
-            for name in ("linkease-desktop", "apptunnel-client"):
-                path = artifact_root / "bundle" / "bin" / name
-                path.write_text("#!/bin/sh\n", encoding="utf-8")
-                path.chmod(0o755)
+            path = artifact_root / "bundle" / "bin" / "linkease-full"
+            path.write_text("#!/bin/sh\n", encoding="utf-8")
+            path.chmod(0o755)
             (artifact_root / "bundle" / "kaiplus" / "marker").write_text("ignored\n", encoding="utf-8")
             archive_path = root / "full-artifact.tar.gz"
             with tarfile.open(archive_path, "w:gz") as archive:
@@ -108,8 +108,9 @@ class BuildScriptTest(unittest.TestCase):
             self.assertEqual(conf["md5"], module.md5sum(root / "linkease.tar.gz"))
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
-            self.assertIn("linkease/bin/linkease-desktop", members)
-            self.assertIn("linkease/bin/apptunnel-client", members)
+            self.assertIn("linkease/bin/linkease-full", members)
+            self.assertNotIn("linkease/bin/linkease-desktop", members)
+            self.assertNotIn("linkease/bin/apptunnel-client", members)
             self.assertFalse(any(name.startswith("linkease/kaiplus/") for name in members))
 
     def test_build_module_rejects_path_traversal_module_name(self):

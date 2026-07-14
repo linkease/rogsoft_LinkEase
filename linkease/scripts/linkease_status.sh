@@ -12,8 +12,7 @@ normalize_linkease_edition(){
 LINKEASE_ACTIVE_EDITION="$(normalize_linkease_edition)"
 
 legacy_pid="$(pidof link-ease)"
-desktop_pid="$(pidof linkease-desktop)"
-apptunnel_pid="$(pidof apptunnel-client)"
+full_pid="$(pidof linkease-full)"
 DESKTOP_PORT=19290
 health_url="http://127.0.0.1:19290/apps/api/v1/health"
 
@@ -77,21 +76,13 @@ case "$LINKEASE_ACTIVE_EDITION" in
 		;;
 	full)
 		detect_apps_proxy_state
-		if [ -z "$desktop_pid" ] && [ -z "$apptunnel_pid" ]; then
+		if [ -z "$full_pid" ]; then
 			http_response "LinkEase Full 未运行"
-			exit 0
-		fi
-		if [ -z "$desktop_pid" ]; then
-			http_response "【警告】：LinkEase Full 主服务未运行，apptunnel-client 运行中"
-			exit 0
-		fi
-		if [ -z "$apptunnel_pid" ]; then
-			http_response "【警告】：LinkEase Full 主服务运行中，旧版8897入口未运行"
 			exit 0
 		fi
 		if fetch_url "$health_url" >/dev/null 2>&1; then
 			if [ "$linkease_httpd_proxy_running" = "1" ]; then
-				status_msg="LinkEase Full 运行正常，/apps/ 与8897入口已启动"
+				status_msg="LinkEase Full 运行正常，/apps/ 入口已启动"
 			elif [ "$linkease_httpd_proxy_capable" = "1" ]; then
 				status_msg="LinkEase Full 运行正常，当前系统 httpd proxy 未运行，已使用19290端口直连"
 			else

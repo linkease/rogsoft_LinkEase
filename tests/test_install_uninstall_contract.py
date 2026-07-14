@@ -82,8 +82,7 @@ class InstallUninstallContractTest(unittest.TestCase):
         expected = [
             "module=${DIR##*/}",
             'local TITLE="易有云"',
-            "DESKTOP_BIN=linkease-desktop",
-            "APPTUNNEL_BIN=apptunnel-client",
+            "FULL_BIN=linkease-full",
             "APP_DIR=/koolshare/linkease",
         ]
         for item in expected:
@@ -124,8 +123,9 @@ class InstallUninstallContractTest(unittest.TestCase):
     def test_install_stops_legacy_and_full_linkease_processes_only(self):
         expected = [
             "killall link-ease",
-            "killall ${DESKTOP_BIN}",
-            "killall ${APPTUNNEL_BIN}",
+            "killall ${FULL_BIN}",
+            "rm -rf /koolshare/bin/linkease-desktop",
+            "rm -rf /koolshare/bin/apptunnel-client",
         ]
         for item in expected:
             self.assertIn(item, self.install)
@@ -163,8 +163,7 @@ class InstallUninstallContractTest(unittest.TestCase):
     def test_install_copies_full_runtime_without_kaiplus(self):
         expected = [
             "cp -rf /tmp/${module}/bin/* /koolshare/bin/",
-            "chmod 755 /koolshare/bin/${DESKTOP_BIN}",
-            "chmod 755 /koolshare/bin/${APPTUNNEL_BIN}",
+            "chmod 755 /koolshare/bin/${FULL_BIN}",
         ]
         for item in expected:
             self.assertIn(item, self.install)
@@ -184,10 +183,8 @@ class InstallUninstallContractTest(unittest.TestCase):
 
     def test_uninstall_removes_full_linkease_and_betterapps_leftovers_without_kaiplus(self):
         expected = [
-            "killall linkease-desktop",
-            "killall apptunnel-client",
-            "rm -rf /koolshare/bin/linkease-desktop",
-            "rm -rf /koolshare/bin/apptunnel-client",
+            "killall linkease-full",
+            "rm -rf /koolshare/bin/linkease-full",
             "rm -rf /koolshare/bin/link-ease",
             "rm -rf /koolshare/linkease",
             "rm -rf /koolshare/bin/BetterApps",

@@ -7,8 +7,7 @@ FW_TYPE_CODE=
 FW_TYPE_NAME=
 DIR=$(cd $(dirname $0); pwd)
 module=${DIR##*/}
-DESKTOP_BIN=linkease-desktop
-APPTUNNEL_BIN=apptunnel-client
+FULL_BIN=linkease-full
 APP_DIR=/koolshare/linkease
 
 get_model(){
@@ -253,12 +252,13 @@ install_now(){
 		echo_date "安装前先关闭${TITLE}插件，以保证更新成功！"
 		killall link-ease > /dev/null 2>&1
 	fi
-	if [ "${ENABLE}" == "1" -o -n "$(pidof ${DESKTOP_BIN})" ];then
-		killall ${DESKTOP_BIN} > /dev/null 2>&1
+	if [ "${ENABLE}" == "1" -o -n "$(pidof ${FULL_BIN})" ];then
+		killall ${FULL_BIN} > /dev/null 2>&1
 	fi
-	if [ "${ENABLE}" == "1" -o -n "$(pidof ${APPTUNNEL_BIN})" ];then
-		killall ${APPTUNNEL_BIN} > /dev/null 2>&1
-	fi
+	killall linkease-desktop > /dev/null 2>&1
+	killall apptunnel-client > /dev/null 2>&1
+	rm -rf /koolshare/bin/linkease-desktop >/dev/null 2>&1
+	rm -rf /koolshare/bin/apptunnel-client >/dev/null 2>&1
 	# remove some file first
 	find /koolshare/init.d -name "*linkease.sh" | xargs rm -rf >/dev/null 2>&1
 	migrate_betterapps_dbus
@@ -274,8 +274,7 @@ install_now(){
 	cp -rf /tmp/${module}/uninstall.sh /koolshare/scripts/uninstall_${module}.sh
 	# Permissions
 	chmod 755 /koolshare/scripts/${module}_*.sh >/dev/null 2>&1
-	chmod 755 /koolshare/bin/${DESKTOP_BIN} >/dev/null 2>&1
-	chmod 755 /koolshare/bin/${APPTUNNEL_BIN} >/dev/null 2>&1
+	chmod 755 /koolshare/bin/${FULL_BIN} >/dev/null 2>&1
 	chmod 755 /koolshare/bin/link-ease >/dev/null 2>&1 || true
 	chmod 755 /koolshare/bin/linkease-plugins/aria2.sh >/dev/null 2>&1
 	# make start up script link

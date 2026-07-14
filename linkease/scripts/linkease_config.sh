@@ -4,13 +4,9 @@ eval `dbus export betterapps`
 source /koolshare/scripts/base.sh
 alias echo_date='echo $(date +%Y年%m月%d日\ %X):'
 
-DESKTOP_BIN=/koolshare/bin/linkease-desktop
-APPTUNNEL_BIN=/koolshare/bin/apptunnel-client
-DESKTOP_PID_FILE=/var/run/linkease-desktop.pid
-APPTUNNEL_PID_FILE=/var/run/linkease-apptunnel.pid
+FULL_BIN=/koolshare/bin/linkease-full
+FULL_PID_FILE=/var/run/linkease-full.pid
 DESKTOP_PORT=19290
-APPTUNNEL_PORT=8897
-LINKEASE_LOCAL_API=/var/run/linkease.sock
 APP_DIR=/koolshare/linkease
 APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"
 LEGACY_BIN=/koolshare/bin/link-ease
@@ -20,7 +16,7 @@ export SERVER_HOST=0.0.0.0
 export SERVER_PORT=${DESKTOP_PORT}
 export SERVER_MODE=release
 export SERVER_BASE_PATH=/apps/
-export LINKEASE_EDITION=router-lite
+export LINKEASE_EDITION=nas-full
 export KAIPLUS_ENABLED=0
 KAIPLUS_PROXY_TARGET=""
 
@@ -316,12 +312,8 @@ ensure_apps_forward(){
 	return 0
 }
 
-start_desktop(){
-	start-stop-daemon -S -q -b -m -p $DESKTOP_PID_FILE -x $DESKTOP_BIN
-}
-
-start_apptunnel(){
-	start-stop-daemon -S -q -b -m -p $APPTUNNEL_PID_FILE -x $APPTUNNEL_BIN -- --deviceAddr :$APPTUNNEL_PORT --localApi $LINKEASE_LOCAL_API
+start_full_binary(){
+	start-stop-daemon -S -q -b -m -p $FULL_PID_FILE -x $FULL_BIN
 }
 
 start_standard(){
@@ -336,8 +328,7 @@ start_full(){
 	ensure_dirs || return 1
 	ensure_apps_forward || return 1
 	kill_ee
-	start_desktop
-	start_apptunnel
+	start_full_binary
 	detect_apps_proxy_state
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
@@ -364,9 +355,10 @@ start_active_edition(){
 
 kill_ee(){
 	killall link-ease >/dev/null 2>&1
+	killall linkease-full >/dev/null 2>&1
 	killall linkease-desktop >/dev/null 2>&1
 	killall apptunnel-client >/dev/null 2>&1
-	rm -f $DESKTOP_PID_FILE $APPTUNNEL_PID_FILE >/dev/null 2>&1
+	rm -f $FULL_PID_FILE /var/run/linkease-desktop.pid /var/run/linkease-apptunnel.pid >/dev/null 2>&1
 }
 
 clean_iptables_port(){
@@ -377,16 +369,13 @@ clean_iptables_port(){
 
 load_iptables(){
 	clean_iptables_port ${DESKTOP_PORT}
-	clean_iptables_port ${APPTUNNEL_PORT}
 	if [ "$LINKEASE_ACTIVE_EDITION" = "full" ]; then
 		iptables -t filter -I INPUT -p tcp --dport ${DESKTOP_PORT} -j ACCEPT >/dev/null 2>&1
 	fi
-	iptables -t filter -I INPUT -p tcp --dport ${APPTUNNEL_PORT} -j ACCEPT >/dev/null 2>&1
 }
 
 del_iptables(){
 	clean_iptables_port ${DESKTOP_PORT}
-	clean_iptables_port ${APPTUNNEL_PORT}
 }
 
 #=========================================================

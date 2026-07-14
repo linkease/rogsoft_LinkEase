@@ -15,7 +15,7 @@ from pathlib import Path
 
 parent_path = os.path.dirname(os.path.realpath(__file__))
 FULL_ARTIFACT_FIELDS = ("full_artifact_url", "full_artifact_sha256")
-FULL_BINARIES = ("linkease-desktop", "apptunnel-client")
+FULL_BINARY = "linkease-full"
 
 def md5sum(full_path):
     with open(full_path, 'rb') as rf:
@@ -42,13 +42,12 @@ def stage_full_artifacts(module_dir, artifact_dir):
     bin_dir = module_dir / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
 
-    for binary in FULL_BINARIES:
-        src = artifact_dir / binary
-        if not src.is_file():
-            raise FileNotFoundError("missing full runtime binary: %s" % src)
-        dst = bin_dir / binary
-        shutil.copy2(src, dst)
-        make_executable(dst)
+    src = artifact_dir / FULL_BINARY
+    if not src.is_file():
+        raise FileNotFoundError("missing full runtime binary: %s" % src)
+    dst = bin_dir / FULL_BINARY
+    shutil.copy2(src, dst)
+    make_executable(dst)
 
     kaiplus_dst = module_dir / "kaiplus"
     if kaiplus_dst.exists():
@@ -69,7 +68,7 @@ def extract_full_artifact(archive_path, artifact_dir):
             if not member.isfile():
                 continue
             binary = Path(member.name).name
-            if binary not in FULL_BINARIES or binary in found:
+            if binary != FULL_BINARY or binary in found:
                 continue
             source = archive.extractfile(member)
             if source is None:
@@ -79,9 +78,8 @@ def extract_full_artifact(archive_path, artifact_dir):
                 shutil.copyfileobj(source, output)
             make_executable(dst)
             found.add(binary)
-    missing = set(FULL_BINARIES) - found
-    if missing:
-        raise FileNotFoundError("full artifact missing runtime binaries: %s" % ", ".join(sorted(missing)))
+    if FULL_BINARY not in found:
+        raise FileNotFoundError("full artifact missing runtime binary: %s" % FULL_BINARY)
 
 def stage_downloaded_full_artifact(module_dir, full_artifact_url, full_artifact_sha256, root):
     full_artifact_url = str(full_artifact_url or "").strip()
@@ -191,7 +189,7 @@ def build_module(root=None, artifact_dir=None, full_artifact_url=None, full_arti
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--artifact-dir", help="Directory containing linkease-desktop and apptunnel-client")
+    parser.add_argument("--artifact-dir", help="Directory containing linkease-full")
     parser.add_argument("--full-artifact-url", help="Release artifact URL recorded into config metadata")
     parser.add_argument("--full-artifact-sha256", help="Release artifact sha256 recorded into config metadata")
     parser.add_argument("--skip-download", action="store_true", help="Skip release artifact download; useful for tests")

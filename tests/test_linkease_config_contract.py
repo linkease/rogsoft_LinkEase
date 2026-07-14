@@ -19,8 +19,9 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         cls.status = STATUS.read_text(encoding="utf-8")
 
     def test_full_runtime_paths_are_linkease_owned_without_embedded_kaiplus(self):
-        self.assertIn("DESKTOP_BIN=/koolshare/bin/linkease-desktop", self.config)
-        self.assertIn("APPTUNNEL_BIN=/koolshare/bin/apptunnel-client", self.config)
+        self.assertIn("FULL_BIN=/koolshare/bin/linkease-full", self.config)
+        self.assertNotIn("DESKTOP_BIN=/koolshare/bin/linkease-desktop", self.config)
+        self.assertNotIn("APPTUNNEL_BIN=/koolshare/bin/apptunnel-client", self.config)
         self.assertIn("APP_DIR=/koolshare/linkease", self.config)
         forbidden = [
             joined("KAIPLUS_", "BIN=${APP_DIR}/kaiplus/bin/kaiplus_bin"),
@@ -42,7 +43,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "export SERVER_HOST=0.0.0.0",
             "export SERVER_PORT=${DESKTOP_PORT}",
             "export SERVER_BASE_PATH=/apps/",
-            "export LINKEASE_EDITION=router-lite",
+            "export LINKEASE_EDITION=nas-full",
             "export KAIPLUS_ENABLED=0",
         ]
         for item in expected:
@@ -66,13 +67,9 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             self.assertIn(item, self.config)
 
     def test_apptunnel_preserves_legacy_entry_and_local_api_socket(self):
-        self.assertIn("APPTUNNEL_PORT=8897", self.config)
-        self.assertIn("LINKEASE_LOCAL_API=/var/run/linkease.sock", self.config)
-        pattern = re.compile(
-            r"start-stop-daemon -S -q -b -m -p \$APPTUNNEL_PID_FILE "
-            r"-x \$APPTUNNEL_BIN -- --deviceAddr :\$APPTUNNEL_PORT --localApi \$LINKEASE_LOCAL_API"
-        )
-        self.assertRegex(self.config, pattern)
+        self.assertNotIn("APPTUNNEL_PORT=8897", self.config)
+        self.assertNotIn("LINKEASE_LOCAL_API=/var/run/linkease.sock", self.config)
+        self.assertNotIn("start_apptunnel", self.config)
 
     def test_data_path_resolution_prefers_linkease_then_betterapps_then_bootstrap(self):
         markers = [
@@ -95,10 +92,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
 
     def test_process_lifecycle_manages_only_desktop_and_apptunnel(self):
         expected = [
-            "killall linkease-desktop",
-            "killall apptunnel-client",
-            "start_desktop",
-            "start_apptunnel",
+            "killall linkease-full",
+            "start_full_binary",
             "load_iptables",
             "del_iptables",
         ]
@@ -130,8 +125,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
     def test_status_checks_full_processes_and_health_endpoint(self):
         expected = [
             "source /koolshare/scripts/base.sh",
-            "pidof linkease-desktop",
-            "pidof apptunnel-client",
+            "pidof linkease-full",
             "http://127.0.0.1:19290/apps/api/v1/health",
             "LinkEase Full",
             "http_response",
@@ -162,7 +156,6 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "clean_iptables_port()",
             "iptables -D INPUT -p tcp --dport $1 -j ACCEPT",
             "clean_iptables_port ${DESKTOP_PORT}",
-            "clean_iptables_port ${APPTUNNEL_PORT}",
         ]
         for item in expected:
             self.assertIn(item, self.config)
@@ -263,18 +256,15 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         start_full = re.search(r"start_full\(\)\{([\s\S]*?)\n\}", self.config)
         self.assertIsNotNone(start_full)
         block = start_full.group(1)
-        self.assertLess(block.index("ensure_apps_forward"), block.index("start_desktop"))
-        self.assertLess(block.index("start_desktop"), block.index("start_apptunnel"))
-        self.assertLess(block.index("start_apptunnel"), block.index("detect_apps_proxy_state"))
+        self.assertLess(block.index("ensure_apps_forward"), block.index("start_full_binary"))
+        self.assertLess(block.index("start_full_binary"), block.index("detect_apps_proxy_state"))
 
         standard_block = re.search(r"start_standard\(\)\{([\s\S]*?)\n\}", self.config)
         lite_block = re.search(r"start_lite\(\)\{([\s\S]*?)\n\}", self.config)
         self.assertIsNotNone(standard_block)
         self.assertIsNotNone(lite_block)
-        self.assertNotIn("start_desktop", standard_block.group(1))
-        self.assertNotIn("start_apptunnel", standard_block.group(1))
-        self.assertNotIn("start_desktop", lite_block.group(1))
-        self.assertNotIn("start_apptunnel", lite_block.group(1))
+        self.assertNotIn("start_full_binary", standard_block.group(1))
+        self.assertNotIn("start_full_binary", lite_block.group(1))
 
     def test_desktop_firewall_rule_is_gated_to_full_edition(self):
         load_iptables = re.search(r"load_iptables\(\)\{([\s\S]*?)\n\}", self.config)
@@ -285,10 +275,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "iptables -t filter -I INPUT -p tcp --dport ${DESKTOP_PORT} -j ACCEPT",
             block,
         )
-        self.assertIn(
-            "iptables -t filter -I INPUT -p tcp --dport ${APPTUNNEL_PORT} -j ACCEPT",
-            block,
-        )
+        self.assertNotIn("APPTUNNEL_PORT", block)
 
 
 if __name__ == "__main__":
