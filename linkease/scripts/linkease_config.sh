@@ -316,9 +316,15 @@ start_full_binary(){
 	start-stop-daemon -S -q -b -m -p $FULL_PID_FILE -x $FULL_BIN
 }
 
+stop_linkeaselite_runtime(){
+	killall linkease-lite >/dev/null 2>&1
+	dbus set linkeaselite_enable=0 >/dev/null 2>&1
+}
+
 start_standard(){
 	ensure_dirs || return 1
 	kill_ee
+	stop_linkeaselite_runtime
 	start-stop-daemon -S -q -b -x $LEGACY_BIN
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
@@ -328,6 +334,7 @@ start_full(){
 	ensure_dirs || return 1
 	ensure_apps_forward || return 1
 	kill_ee
+	stop_linkeaselite_runtime
 	start_full_binary
 	detect_apps_proxy_state
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh

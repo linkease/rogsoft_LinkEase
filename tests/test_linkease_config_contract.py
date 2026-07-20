@@ -102,6 +102,26 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertNotIn("start_kaiplus", self.config)
         self.assert_no_forbidden_kaiplus_runtime_targets(self.config)
 
+    def test_standard_and_full_starts_stop_linkeaselite_runtime(self):
+        stopper = re.search(r"stop_linkeaselite_runtime\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(stopper)
+        self.assertIn("killall linkease-lite", stopper.group(1))
+        self.assertIn("dbus set linkeaselite_enable=0", stopper.group(1))
+
+        kill_ee = re.search(r"kill_ee\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(kill_ee)
+        self.assertNotIn("linkease-lite", kill_ee.group(1))
+
+        for starter_name, started_binary in (
+            ("start_standard", "$LEGACY_BIN"),
+            ("start_full", "start_full_binary"),
+        ):
+            starter = re.search(rf"{starter_name}\(\)\{{([\s\S]*?)\n\}}", self.config)
+            self.assertIsNotNone(starter)
+            block = starter.group(1)
+            self.assertIn("stop_linkeaselite_runtime", block)
+            self.assertLess(block.index("stop_linkeaselite_runtime"), block.index(started_binary))
+
     def assert_no_forbidden_kaiplus_runtime_targets(self, script):
         commands = r"(?:start-stop-daemon|killall|kill|mv|install|cp|rm|mkdir|chmod|find)"
         targets = (
