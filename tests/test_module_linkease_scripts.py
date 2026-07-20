@@ -118,6 +118,7 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
             'return dbus["linkease_full_supported"] == "1";',
             'function update_full_support_hint(force)',
             'dbus["linkease_full_support_hint"]',
+            'ARM32 通用二进制',
             '需要开启并启用 usb2jffs',
             'function handle_linkease_edition_change()',
             'if (selected_linkease_edition() == "full" && !linkease_full_supported()) {',

@@ -60,7 +60,7 @@ detect_full_runtime_support(){
 		*)
 			dbus set linkease_usb2jffs_ready=0
 			dbus set linkease_full_supported=0
-			dbus set linkease_full_support_hint="LinkEase Full 支持 ARM32/ARM64，当前设备可继续使用标准版，或单独安装 LinkEaseLite。"
+			dbus set linkease_full_support_hint="LinkEase Full 使用 ARM32 通用二进制，当前设备可继续使用标准版，或单独安装 LinkEaseLite。"
 			;;
 	esac
 }

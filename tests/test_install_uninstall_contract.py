@@ -103,7 +103,7 @@ class InstallUninstallContractTest(unittest.TestCase):
             "linkease_full_supported=0",
             "dbus set linkease_full_supported=",
             "dbus set linkease_full_support_hint=",
-            "LinkEase Full 支持 ARM32/ARM64",
+            "LinkEase Full 使用 ARM32 通用二进制",
             "LinkEase Full 需要 1GB 以上内存",
             "需要开启并启用 usb2jffs",
         ]

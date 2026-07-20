@@ -277,7 +277,7 @@ var PROTOCOL = "cifs";
                 return;
             }
             if (force || (selected_linkease_edition() == "full" && !linkease_full_supported())) {
-                hint.innerHTML = dbus["linkease_full_support_hint"] || "当前设备不支持完整版，请使用标准版；完整版需要 1GB 以上内存，并需要开启并启用 usb2jffs。";
+                hint.innerHTML = dbus["linkease_full_support_hint"] || "当前设备不支持完整版，请使用标准版；完整版使用 ARM32 通用二进制，需要 1GB 以上内存，并需要开启并启用 usb2jffs。";
                 hint.style.display = "";
             } else {
                 hint.style.display = "none";

@@ -223,6 +223,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "需要开启并启用 usb2jffs",
             "detect_full_runtime_support",
             'dbus set linkease_full_supported=0',
+            "LinkEase Full 使用 ARM32 通用二进制",
             "LinkEase Full 需要 1GB 以上内存",
         ]
         for item in expected:
