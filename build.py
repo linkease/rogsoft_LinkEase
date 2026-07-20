@@ -7,6 +7,7 @@ import hashlib
 import argparse
 import shutil
 import stat
+import subprocess
 import tarfile
 import tempfile
 import traceback
@@ -29,6 +30,28 @@ def make_executable(path):
     path = Path(path)
     path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
+def compress_with_upx(path):
+    mode = os.environ.get("LINKEASE_UPX", "auto").strip().lower()
+    if mode in ("0", "false", "no", "skip", "disabled"):
+        return False
+    upx = os.environ.get("UPX", "upx")
+    upx_path = shutil.which(upx)
+    if not upx_path:
+        if mode in ("1", "required"):
+            raise FileNotFoundError("upx requested but not found: %s" % upx)
+        return False
+    result = subprocess.run(
+        [upx_path, "--best", "--lzma", str(path)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if result.returncode != 0:
+        if mode in ("1", "required"):
+            raise RuntimeError(result.stdout)
+        return False
+    return True
+
 def copy_tree(src, dst):
     src = Path(src)
     dst = Path(dst)
@@ -48,6 +71,7 @@ def stage_full_artifacts(module_dir, artifact_dir):
     dst = bin_dir / FULL_BINARY
     shutil.copy2(src, dst)
     make_executable(dst)
+    compress_with_upx(dst)
 
     kaiplus_dst = module_dir / "kaiplus"
     if kaiplus_dst.exists():

@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import py_compile
 import shutil
 import tarfile
@@ -64,6 +65,48 @@ class BuildScriptTest(unittest.TestCase):
                     for name in members
                 )
             )
+
+    def test_build_upx_compresses_full_binary_when_available(self):
+        module = self.load_build_module()
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            shutil.copytree(ROOT / "linkease", root / "linkease")
+            shutil.copy2(ROOT / "config.json.js", root / "config.json.js")
+            artifact = root / "artifact"
+            artifact.mkdir()
+            path = artifact / "linkease-full"
+            path.write_text("#!/bin/sh\n", encoding="utf-8")
+            path.chmod(0o755)
+            fake_bin = root / "fake-bin"
+            fake_bin.mkdir()
+            upx = fake_bin / "upx"
+            upx.write_text(
+                "#!/bin/sh\n"
+                "printf '%s\\n' \"$*\" >>\"$UPX_LOG\"\n"
+                "last=''\n"
+                "for arg in \"$@\"; do last=\"$arg\"; done\n"
+                "printf 'packed\\n' >>\"$last\"\n",
+                encoding="utf-8",
+            )
+            upx.chmod(0o755)
+            old_path = os.environ.get("PATH", "")
+            old_log = os.environ.get("UPX_LOG")
+            os.environ["PATH"] = f"{fake_bin}{os.pathsep}{old_path}"
+            os.environ["UPX_LOG"] = str(root / "upx.log")
+            try:
+                module.build_module(root=root, artifact_dir=artifact)
+            finally:
+                os.environ["PATH"] = old_path
+                if old_log is None:
+                    os.environ.pop("UPX_LOG", None)
+                else:
+                    os.environ["UPX_LOG"] = old_log
+
+            upx_log = root / "upx.log"
+            self.assertTrue(upx_log.is_file(), "build.py should invoke upx for linkease-full")
+            self.assertIn("--best --lzma", upx_log.read_text(encoding="utf-8"))
+            self.assertTrue((root / "linkease" / "bin" / "linkease-full").read_bytes().endswith(b"packed\n"))
 
     def test_build_downloads_full_artifact_from_config_url(self):
         module = self.load_build_module()
