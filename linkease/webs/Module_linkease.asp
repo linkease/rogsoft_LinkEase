@@ -300,8 +300,9 @@ var PROTOCOL = "cifs";
             var legacy = E("linkease_legacy");  //旧版入口
             var full_url = build_full_url();
             var legacy_url = "http://" + r_lan_ipaddr + ":8897";
+            var guide_url = legacy_url + "/guide/";
             webite.href = full_url;
-            linkease_guide.href = legacy_url;
+            linkease_guide.href = guide_url;
             legacy.href = legacy_url;
             update_proxy_hint();
             if (dbus["linkease_enable"] != "1") {

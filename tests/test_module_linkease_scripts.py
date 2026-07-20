@@ -49,8 +49,9 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
         expected = [
             'var full_url = build_full_url();',
             'var legacy_url = "http://" + r_lan_ipaddr + ":8897";',
+            'var guide_url = legacy_url + "/guide/";',
             'webite.href = full_url;',
-            'linkease_guide.href = legacy_url;',
+            'linkease_guide.href = guide_url;',
             'legacy.href = legacy_url;',
             '>配置中心</a>',
             '>完整版</a>',
