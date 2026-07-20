@@ -113,7 +113,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertNotIn("linkease-lite", kill_ee.group(1))
 
         for starter_name, started_binary in (
-            ("start_standard", "$LEGACY_BIN"),
+            ("start_standard", "start_standard_binary"),
             ("start_full", "start_full_binary"),
         ):
             starter = re.search(rf"{starter_name}\(\)\{{([\s\S]*?)\n\}}", self.config)
@@ -121,6 +121,15 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             block = starter.group(1)
             self.assertIn("stop_linkeaselite_runtime", block)
             self.assertLess(block.index("stop_linkeaselite_runtime"), block.index(started_binary))
+
+    def test_full_transition_starts_standard_and_full_processes(self):
+        self.assertIn("start_standard_binary()", self.config)
+        start_full = re.search(r"start_full\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(start_full)
+        block = start_full.group(1)
+        self.assertIn("start_standard_binary", block)
+        self.assertIn("start_full_binary", block)
+        self.assertLess(block.index("start_standard_binary"), block.index("start_full_binary"))
 
     def assert_no_forbidden_kaiplus_runtime_targets(self, script):
         commands = r"(?:start-stop-daemon|killall|kill|mv|install|cp|rm|mkdir|chmod|find)"
@@ -256,7 +265,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         for starter in ("start_standard", "start_full"):
             block = re.search(r"%s\(\)\{([\s\S]*?)\n\}" % starter, self.config)
             self.assertIsNotNone(block)
-            launch_call = "start-stop-daemon" if starter == "start_standard" else "start_full_binary"
+            launch_call = "start_standard_binary" if starter == "start_standard" else "start_full_binary"
             self.assertIn("apply_go_memory_limits", block.group(1))
             self.assertIn("ulimit -v unlimited", block.group(1))
             self.assertLess(block.group(1).index("apply_go_memory_limits"), block.group(1).index(launch_call))

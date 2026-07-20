@@ -298,10 +298,10 @@ var PROTOCOL = "cifs";
             var webite = E("linkease_website");  //访问linkease
             var linkease_guide = E("linkease_guide");    //配置中心
             var legacy = E("linkease_legacy");  //旧版入口
-            var management_url = build_management_url();
+            var full_url = build_full_url();
             var legacy_url = "http://" + r_lan_ipaddr + ":8897";
-            webite.href = management_url;
-            linkease_guide.href = management_url;
+            webite.href = full_url;
+            linkease_guide.href = legacy_url;
             legacy.href = legacy_url;
             update_proxy_hint();
             if (dbus["linkease_enable"] != "1") {
@@ -813,9 +813,9 @@ var PROTOCOL = "cifs";
                                                     <a type="button" id="linkease_guide" class="linkease_btn"
                                                         target="_blank">配置中心</a>
                                                     <a type="button" id="linkease_website" class="linkease_btn" href=""
-                                                        target="_blank">打开LinkEase</a>
+                                                        target="_blank">完整版</a>
                                                     <a type="button" id="linkease_legacy" class="linkease_btn" href=""
-                                                        target="_blank">旧版入口</a>
+                                                        target="_blank">标准版</a>
                                                 </td>
                                             </tr>
                                         </table>

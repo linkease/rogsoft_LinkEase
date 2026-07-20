@@ -364,6 +364,10 @@ start_full_binary(){
 	start-stop-daemon -S -q -b -m -p $FULL_PID_FILE -x $FULL_BIN
 }
 
+start_standard_binary(){
+	start-stop-daemon -S -q -b -x $LEGACY_BIN
+}
+
 stop_linkeaselite_runtime(){
 	killall linkease-lite >/dev/null 2>&1
 	dbus set linkeaselite_enable=0 >/dev/null 2>&1
@@ -375,7 +379,7 @@ start_standard(){
 	stop_linkeaselite_runtime
 	apply_go_memory_limits
 	ulimit -v unlimited 2>/dev/null || true
-	start-stop-daemon -S -q -b -x $LEGACY_BIN
+	start_standard_binary
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
 }
@@ -387,6 +391,7 @@ start_full(){
 	stop_linkeaselite_runtime
 	apply_go_memory_limits
 	ulimit -v unlimited 2>/dev/null || true
+	start_standard_binary
 	start_full_binary
 	detect_apps_proxy_state
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh

@@ -33,25 +33,28 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
         self.assertRegex(self.html, guard_pattern)
 
     def test_full_ui_primary_entry_uses_apps_proxy(self):
-        self.assertIn('var management_url = build_management_url();', self.html)
-        self.assertIn('webite.href = management_url;', self.html)
+        self.assertIn('var full_url = build_full_url();', self.html)
+        self.assertIn('webite.href = full_url;', self.html)
         self.assertIn('id="linkease_website"', self.html)
-        self.assertIn('打开LinkEase', self.html)
+        self.assertIn('完整版', self.html)
 
     def test_legacy_8897_entry_is_kept(self):
         self.assertIn('var legacy_url = "http://" + r_lan_ipaddr + ":8897";', self.html)
         self.assertIn('legacy.href = legacy_url;', self.html)
         self.assertIn('id="linkease_legacy"', self.html)
-        self.assertIn('旧版入口', self.html)
+        self.assertIn('>标准版</a>', self.html)
 
-    def test_management_links_follow_the_selected_edition(self):
+    def test_management_links_keep_config_center_on_standard_entry(self):
         self.assertNotIn(':8897/guide/index.html', self.html)
         expected = [
-            'function build_management_url()',
-            'if (selected_linkease_edition() == "full" && linkease_full_supported()) {',
-            'return build_full_url();',
-            'return "http://" + r_lan_ipaddr + ":8897";',
-            'linkease_guide.href = management_url;',
+            'var full_url = build_full_url();',
+            'var legacy_url = "http://" + r_lan_ipaddr + ":8897";',
+            'webite.href = full_url;',
+            'linkease_guide.href = legacy_url;',
+            'legacy.href = legacy_url;',
+            '>配置中心</a>',
+            '>完整版</a>',
+            '>标准版</a>',
         ]
         for item in expected:
             self.assertIn(item, self.html)
