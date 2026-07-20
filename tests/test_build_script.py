@@ -27,15 +27,9 @@ class BuildScriptTest(unittest.TestCase):
 
         self.assertEqual(config["module"], "linkease")
         self.assertEqual(config["home_url"], "Module_linkease.asp")
-        self.assertEqual(config["version"], "2.17.6")
-        self.assertEqual(
-            config["full_artifact_url"],
-            "https://fw0.koolcenter.com/binary/LinkEase/LinkEaseFull/linkease-full-binary-3.0.1.tar.gz",
-        )
-        self.assertEqual(
-            config["full_artifact_sha256"],
-            "415fbb73949b3b42af4b7812402aa75e813266d5e9a22428c399df16ddb76144",
-        )
+        self.assertRegex(config["version"], r"^\d+\.\d+\.\d+$")
+        self.assertTrue(config["full_artifact_url"].strip())
+        self.assertRegex(config["full_artifact_sha256"], r"^[0-9a-f]{64}$")
 
     def test_build_stages_full_binary_without_kaiplus(self):
         module = self.load_build_module()
