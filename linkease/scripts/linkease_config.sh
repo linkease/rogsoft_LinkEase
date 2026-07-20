@@ -6,6 +6,7 @@ alias echo_date='echo $(date +%Y年%m月%d日\ %X):'
 
 FULL_BIN=/koolshare/bin/linkease-full
 FULL_PID_FILE=/var/run/linkease-full.pid
+FULL_MIN_MEM_KB=900000
 DESKTOP_PORT=19290
 APP_DIR=/koolshare/linkease
 APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"
@@ -119,12 +120,63 @@ detect_usb2jffs_ready(){
 	return 1
 }
 
+mem_total_kb(){
+	awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null
+}
+
+full_memory_ready(){
+	local mem_kb
+	mem_kb="$(mem_total_kb)"
+	[ -n "$mem_kb" ] && [ "$mem_kb" -ge "$FULL_MIN_MEM_KB" ] 2>/dev/null
+}
+
+default_standard_gomemlimit(){
+	local mem_kb
+	mem_kb="$(mem_total_kb)"
+	case "$mem_kb" in
+		''|*[!0-9]*) echo 128MiB; return 0 ;;
+	esac
+	if [ "$mem_kb" -le 524288 ] 2>/dev/null; then
+		echo 128MiB
+	elif [ "$mem_kb" -le 1048576 ] 2>/dev/null; then
+		echo 192MiB
+	else
+		echo 384MiB
+	fi
+}
+
+default_full_gomemlimit(){
+	local mem_kb
+	mem_kb="$(mem_total_kb)"
+	case "$mem_kb" in
+		''|*[!0-9]*) echo 256MiB; return 0 ;;
+	esac
+	if [ "$mem_kb" -le 1048576 ] 2>/dev/null; then
+		echo 256MiB
+	else
+		echo 384MiB
+	fi
+}
+
+apply_go_memory_limits(){
+	if [ "$LINKEASE_ACTIVE_EDITION" = "full" ]; then
+		export GOMEMLIMIT="${linkease_full_gomemlimit:-$(default_full_gomemlimit)}"
+	else
+		export GOMEMLIMIT="${linkease_gomemlimit:-$(default_standard_gomemlimit)}"
+	fi
+	export GOGC="${linkease_gogc:-50}"
+}
+
 detect_full_runtime_support(){
 	local ARCH
 	ARCH=$(uname -m)
 	case "${ARCH}" in
-		aarch64|arm64)
-			if detect_usb2jffs_ready; then
+		arm*|aarch64|arm64)
+			if ! full_memory_ready; then
+				linkease_full_supported=0
+				dbus set linkease_full_supported=0 >/dev/null 2>&1
+				dbus set linkease_full_support_hint="LinkEase Full 需要 1GB 以上内存，当前设备可继续使用标准版。" >/dev/null 2>&1
+			elif detect_usb2jffs_ready; then
 				linkease_full_supported=1
 				dbus set linkease_full_supported=1 >/dev/null 2>&1
 				dbus set linkease_full_support_hint="" >/dev/null 2>&1
@@ -139,32 +191,28 @@ detect_full_runtime_support(){
 			linkease_full_supported=0
 			dbus set linkease_usb2jffs_ready=0 >/dev/null 2>&1
 			dbus set linkease_full_supported=0 >/dev/null 2>&1
-			dbus set linkease_full_support_hint="LinkEase Full 仅支持 arm64/aarch64，当前设备可继续使用 Standard 或精简版本。" >/dev/null 2>&1
+			dbus set linkease_full_support_hint="LinkEase Full 支持 ARM32/ARM64，当前设备可继续使用标准版，或单独安装 LinkEaseLite。" >/dev/null 2>&1
 			;;
 	esac
 }
 
 normalize_linkease_edition(){
 	case "$linkease_edition" in
-		standard|full|lite)
+		standard|full)
 			if [ "$linkease_edition" = "full" ] && [ "$linkease_full_supported" != "1" ]; then
 				echo standard
 			else
 				echo "$linkease_edition"
 			fi
 			;;
-		*) [ "$linkease_simple" = "1" ] && echo lite || echo standard ;;
+		*) echo standard ;;
 	esac
 }
 
 persist_active_edition(){
 	LINKEASE_ACTIVE_EDITION="$(normalize_linkease_edition)"
 	dbus set linkease_edition="$LINKEASE_ACTIVE_EDITION" >/dev/null 2>&1
-	if [ "$LINKEASE_ACTIVE_EDITION" = "lite" ]; then
-		dbus set linkease_simple=1 >/dev/null 2>&1
-	else
-		dbus set linkease_simple=0 >/dev/null 2>&1
-	fi
+	dbus set linkease_simple=0 >/dev/null 2>&1
 }
 
 configure_data_paths(){
@@ -325,6 +373,8 @@ start_standard(){
 	ensure_dirs || return 1
 	kill_ee
 	stop_linkeaselite_runtime
+	apply_go_memory_limits
+	ulimit -v unlimited 2>/dev/null || true
 	start-stop-daemon -S -q -b -x $LEGACY_BIN
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
@@ -335,15 +385,12 @@ start_full(){
 	ensure_apps_forward || return 1
 	kill_ee
 	stop_linkeaselite_runtime
+	apply_go_memory_limits
+	ulimit -v unlimited 2>/dev/null || true
 	start_full_binary
 	detect_apps_proxy_state
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
 	[ ! -L "/koolshare/init.d/N99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/N99linkease.sh
-}
-
-start_lite(){
-	export LINKEASE_SIMPLE=1
-	start_standard
 }
 
 start_active_edition(){
@@ -353,9 +400,6 @@ start_active_edition(){
 			;;
 		full)
 			start_full
-			;;
-		lite)
-			start_lite
 			;;
 	esac
 }

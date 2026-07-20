@@ -8,6 +8,7 @@ FW_TYPE_NAME=
 DIR=$(cd $(dirname $0); pwd)
 module=${DIR##*/}
 FULL_BIN=linkease-full
+FULL_MIN_MEM_KB=900000
 APP_DIR=/koolshare/linkease
 
 get_model(){
@@ -44,8 +45,11 @@ get_fw_type() {
 detect_full_runtime_support(){
 	local ARCH=$(uname -m)
 	case "${ARCH}" in
-		aarch64|arm64)
-			if detect_usb2jffs_ready; then
+		arm*|aarch64|arm64)
+			if ! full_memory_ready; then
+				dbus set linkease_full_supported=0
+				dbus set linkease_full_support_hint="LinkEase Full 需要 1GB 以上内存，当前设备可继续使用标准版。"
+			elif detect_usb2jffs_ready; then
 				dbus set linkease_full_supported=1
 				dbus set linkease_full_support_hint=""
 			else
@@ -56,9 +60,19 @@ detect_full_runtime_support(){
 		*)
 			dbus set linkease_usb2jffs_ready=0
 			dbus set linkease_full_supported=0
-			dbus set linkease_full_support_hint="LinkEase Full 仅支持 arm64/aarch64，当前设备可继续使用 Standard 或精简版本。"
+			dbus set linkease_full_support_hint="LinkEase Full 支持 ARM32/ARM64，当前设备可继续使用标准版，或单独安装 LinkEaseLite。"
 			;;
 	esac
+}
+
+mem_total_kb(){
+	awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null
+}
+
+full_memory_ready(){
+	local mem_kb
+	mem_kb="$(mem_total_kb)"
+	[ -n "$mem_kb" ] && [ "$mem_kb" -ge "$FULL_MIN_MEM_KB" ] 2>/dev/null
 }
 
 is_usb_jffs_running(){
@@ -232,12 +246,12 @@ migrate_betterapps_dbus(){
 
 init_linkease_edition(){
 	if [ -z "$(dbus get ${module}_edition)" ];then
-		if [ "$(dbus get ${module}_simple)" = "1" ];then
-			dbus set ${module}_edition=lite
-		else
-			dbus set ${module}_edition=standard
-		fi
+		dbus set ${module}_edition=standard
 	fi
+	if [ "$(dbus get ${module}_edition)" = "lite" ];then
+		dbus set ${module}_edition=standard
+	fi
+	dbus set ${module}_simple=0
 }
 
 install_now(){

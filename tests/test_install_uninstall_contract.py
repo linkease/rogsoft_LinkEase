@@ -88,10 +88,12 @@ class InstallUninstallContractTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.install)
 
-    def test_install_records_full_arch_support_without_blocking_standard_lite(self):
+    def test_install_records_full_support_without_blocking_standard(self):
         expected = [
             "detect_full_runtime_support()",
             "detect_usb2jffs_ready()",
+            "full_memory_ready()",
+            "/proc/meminfo",
             "usb2jffs_is_enabled()",
             "is_usb_jffs_running()",
             "dbus get usb2jffs_enable",
@@ -101,7 +103,8 @@ class InstallUninstallContractTest(unittest.TestCase):
             "linkease_full_supported=0",
             "dbus set linkease_full_supported=",
             "dbus set linkease_full_support_hint=",
-            "LinkEase Full 仅支持 arm64/aarch64",
+            "LinkEase Full 支持 ARM32/ARM64",
+            "LinkEase Full 需要 1GB 以上内存",
             "需要开启并启用 usb2jffs",
         ]
         for item in expected:
@@ -113,12 +116,12 @@ class InstallUninstallContractTest(unittest.TestCase):
         expected = [
             "init_linkease_edition()",
             'if [ -z "$(dbus get ${module}_edition)" ];then',
-            'if [ "$(dbus get ${module}_simple)" = "1" ];then',
-            "dbus set ${module}_edition=lite",
             "dbus set ${module}_edition=standard",
+            "dbus set ${module}_simple=0",
         ]
         for item in expected:
             self.assertIn(item, self.install)
+        self.assertNotIn("dbus set ${module}_edition=lite", self.install)
 
     def test_install_stops_legacy_and_full_linkease_processes_only(self):
         expected = [

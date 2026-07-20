@@ -52,12 +52,13 @@ class BuildScriptTest(unittest.TestCase):
 
             self.assertEqual(conf["module"], "linkease")
             self.assertTrue((root / "linkease.tar.gz").is_file())
-            self.assertTrue((root / "linkease" / "bin" / "linkease-full").is_file())
+            self.assertFalse((root / "linkease" / "bin" / "linkease-full").exists())
             self.assertFalse((root / "linkease" / "bin" / "linkease-desktop").exists())
             self.assertFalse((root / "linkease" / "bin" / "apptunnel-client").exists())
             self.assertFalse((root / "linkease" / "kaiplus").exists())
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
+            self.assertIn("linkease/bin/linkease-full", members)
             self.assertFalse(
                 any(
                     name == "linkease/kaiplus"
@@ -106,7 +107,10 @@ class BuildScriptTest(unittest.TestCase):
             upx_log = root / "upx.log"
             self.assertTrue(upx_log.is_file(), "build.py should invoke upx for linkease-full")
             self.assertIn("--best --lzma", upx_log.read_text(encoding="utf-8"))
-            self.assertTrue((root / "linkease" / "bin" / "linkease-full").read_bytes().endswith(b"packed\n"))
+            self.assertFalse((root / "linkease" / "bin" / "linkease-full").exists())
+            with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
+                full_data = archive.extractfile("linkease/bin/linkease-full").read()
+            self.assertTrue(full_data.endswith(b"packed\n"))
 
     def test_build_downloads_full_artifact_from_config_url(self):
         module = self.load_build_module()

@@ -160,7 +160,6 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             'case "$LINKEASE_ACTIVE_EDITION" in',
             "LinkEase Standard",
             "LinkEase Full",
-            "LinkEase Lite",
             "httpd_proxy_capable()",
             "httpd_proxy_running()",
             "detect_apps_proxy_state",
@@ -170,6 +169,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         ]
         for item in expected:
             self.assertIn(item, self.status)
+        self.assertNotIn("LinkEase Lite", self.status)
+        self.assertNotIn("lite)", self.status)
 
     def test_iptables_cleanup_is_busybox_safe(self):
         expected = [
@@ -182,19 +183,18 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertNotIn('grep "${DESKTOP_PORT}\\\\|${APPTUNNEL_PORT}"', self.config)
         self.assertNotIn("linkease_clean_iptables.sh", self.config)
 
-    def test_runtime_normalizes_standard_full_lite_editions(self):
+    def test_runtime_normalizes_standard_full_editions(self):
         expected = [
             "normalize_linkease_edition()",
-            "standard|full|lite)",
+            "standard|full)",
             'echo "$linkease_edition"',
-            '[ "$linkease_simple" = "1" ] && echo lite || echo standard',
             'LINKEASE_ACTIVE_EDITION="$(normalize_linkease_edition)"',
             'dbus set linkease_edition="$LINKEASE_ACTIVE_EDITION"',
-            'dbus set linkease_simple=1',
             'dbus set linkease_simple=0',
         ]
         for item in expected:
             self.assertIn(item, self.config)
+        self.assertNotIn("echo lite", self.config)
 
     def test_runtime_falls_back_to_standard_when_full_is_unsupported(self):
         normalized_edition = re.search(
@@ -210,8 +210,11 @@ class LinkEaseConfigContractTest(unittest.TestCase):
     def test_full_runtime_requires_usb2jffs_ready(self):
         expected = [
             "detect_usb2jffs_ready()",
+            "full_memory_ready()",
+            "FULL_MIN_MEM_KB=900000",
             "usb2jffs_is_enabled()",
             "is_usb_jffs_running()",
+            "/proc/meminfo",
             "dbus get usb2jffs_enable",
             "dbus get usb2jffs_mount",
             "/proc/mounts",
@@ -220,6 +223,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "需要开启并启用 usb2jffs",
             "detect_full_runtime_support",
             'dbus set linkease_full_supported=0',
+            "LinkEase Full 需要 1GB 以上内存",
         ]
         for item in expected:
             self.assertIn(item, self.config)
@@ -232,23 +236,47 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         positions = [self.config.index(item) for item in startup_order]
         self.assertEqual(positions, sorted(positions))
 
-    def test_runtime_has_separate_standard_full_lite_starters(self):
+    def test_runtime_sets_go_memory_limits_before_starting_binaries(self):
         expected = [
-            "start_standard()",
-            "start_full()",
-            "start_lite()",
-            'case "$LINKEASE_ACTIVE_EDITION" in',
-            "standard)",
-            "full)",
-            "lite)",
-            "start_standard",
-            "start_full",
-            "start_lite",
+            "default_standard_gomemlimit()",
+            "default_full_gomemlimit()",
+            "apply_go_memory_limits()",
+            "export GOMEMLIMIT=",
+            "export GOGC=",
+            "ulimit -v unlimited",
+            "linkease_gomemlimit",
+            "linkease_full_gomemlimit",
+            "256MiB",
+            "384MiB",
         ]
         for item in expected:
             self.assertIn(item, self.config)
 
-    def test_full_detects_httpd_proxy_state_and_lite_standard_do_not_start_full(self):
+        for starter in ("start_standard", "start_full"):
+            block = re.search(r"%s\(\)\{([\s\S]*?)\n\}" % starter, self.config)
+            self.assertIsNotNone(block)
+            launch_call = "start-stop-daemon" if starter == "start_standard" else "start_full_binary"
+            self.assertIn("apply_go_memory_limits", block.group(1))
+            self.assertIn("ulimit -v unlimited", block.group(1))
+            self.assertLess(block.group(1).index("apply_go_memory_limits"), block.group(1).index(launch_call))
+            self.assertLess(block.group(1).index("ulimit -v unlimited"), block.group(1).index(launch_call))
+
+    def test_runtime_has_separate_standard_full_starters(self):
+        expected = [
+            "start_standard()",
+            "start_full()",
+            'case "$LINKEASE_ACTIVE_EDITION" in',
+            "standard)",
+            "full)",
+            "start_standard",
+            "start_full",
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+        self.assertNotIn("start_lite()", self.config)
+        self.assertNotIn("lite)", self.config)
+
+    def test_full_detects_httpd_proxy_state_and_standard_does_not_start_full(self):
         expected = [
             "ensure_apps_forward()",
             "detect_apps_proxy_state()",
@@ -280,11 +308,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertLess(block.index("start_full_binary"), block.index("detect_apps_proxy_state"))
 
         standard_block = re.search(r"start_standard\(\)\{([\s\S]*?)\n\}", self.config)
-        lite_block = re.search(r"start_lite\(\)\{([\s\S]*?)\n\}", self.config)
         self.assertIsNotNone(standard_block)
-        self.assertIsNotNone(lite_block)
         self.assertNotIn("start_full_binary", standard_block.group(1))
-        self.assertNotIn("start_full_binary", lite_block.group(1))
 
     def test_desktop_firewall_rule_is_gated_to_full_edition(self):
         load_iptables = re.search(r"load_iptables\(\)\{([\s\S]*?)\n\}", self.config)

@@ -77,6 +77,11 @@ def stage_full_artifacts(module_dir, artifact_dir):
     if kaiplus_dst.exists():
         shutil.rmtree(kaiplus_dst)
 
+def remove_staged_full_artifact(module_dir):
+    full_path = Path(module_dir) / "bin" / FULL_BINARY
+    if full_path.exists():
+        full_path.unlink()
+
 def download_file(url, dest_path):
     dest_path = Path(dest_path)
     with urllib.request.urlopen(url, timeout=120) as response:
@@ -200,6 +205,7 @@ def build_module(root=None, artifact_dir=None, full_artifact_url=None, full_arti
         tar_path.unlink()
     with tarfile.open(tar_path, "w:gz") as tf:
         tf.add(module_path, arcname=module)
+    remove_staged_full_artifact(module_path)
     conf["md5"] = md5sum(tar_path)
     conf_path = root / "config.json.js"
     with open(conf_path, "w", encoding="utf-8") as fw:

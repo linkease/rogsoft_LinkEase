@@ -56,7 +56,7 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
         for item in expected:
             self.assertIn(item, self.html)
 
-    def test_edition_selector_replaces_simple_switch(self):
+    def test_edition_selector_offers_standard_and_full_only(self):
         expected = [
             'var params_check = ["linkease_enable"];',
             'var params_input = ["linkease_edition"];',
@@ -66,20 +66,19 @@ class ModuleLinkEaseScriptOrderTest(unittest.TestCase):
             'name="linkease_edition"',
             'value="standard"',
             'value="full"',
-            'value="lite"',
-            'Standard 版本',
-            'Full 版本',
-            '精简版本（内存小于512M推荐）',
+            '标准版',
+            '完整版',
         ]
         for item in expected:
             self.assertIn(item, self.html)
-        self.assertNotIn('<label>精简版（内存小于512M推荐）</label>', self.html)
+        self.assertNotIn('value="lite"', self.html)
+        self.assertNotIn('精简版本', self.html)
         self.assertNotIn('id="linkease_simple" class="switch"', self.html)
 
     def test_edition_save_preserves_legacy_simple_key(self):
         expected = [
             'dbus["linkease_edition"] = selected_linkease_edition();',
-            'dbus["linkease_simple"] = dbus["linkease_edition"] == "lite" ? "1" : "0";',
+            'dbus["linkease_simple"] = "0";',
             'set_linkease_edition(normalize_linkease_edition(dbus["linkease_edition"], dbus["linkease_simple"]));',
         ]
         for item in expected:

@@ -4,8 +4,8 @@ source /koolshare/scripts/base.sh
 
 normalize_linkease_edition(){
 	case "$linkease_edition" in
-		standard|full|lite) echo "$linkease_edition" ;;
-		*) [ "$linkease_simple" = "1" ] && echo lite || echo standard ;;
+		standard|full) echo "$linkease_edition" ;;
+		*) echo standard ;;
 	esac
 }
 
@@ -65,13 +65,6 @@ case "$LINKEASE_ACTIVE_EDITION" in
 			http_response "LinkEase Standard 运行正常"
 		else
 			http_response "LinkEase Standard 未运行"
-		fi
-		;;
-	lite)
-		if [ -n "$legacy_pid" ]; then
-			http_response "LinkEase Lite 运行正常"
-		else
-			http_response "LinkEase Lite 未运行"
 		fi
 		;;
 	full)

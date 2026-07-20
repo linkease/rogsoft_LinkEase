@@ -178,10 +178,10 @@ var PROTOCOL = "cifs";
         }
 
         function normalize_linkease_edition(edition, simple) {
-            if (edition == "standard" || edition == "full" || edition == "lite") {
+            if (edition == "standard" || edition == "full") {
                 return edition;
             }
-            return simple == "1" ? "lite" : "standard";
+            return "standard";
         }
 
         function selected_linkease_edition() {
@@ -207,7 +207,7 @@ var PROTOCOL = "cifs";
                 dbus[params_check[i]] = E(params_check[i]).checked ? '1' : '0';
             }
             dbus["linkease_edition"] = selected_linkease_edition();
-            dbus["linkease_simple"] = dbus["linkease_edition"] == "lite" ? "1" : "0";
+            dbus["linkease_simple"] = "0";
             showLoading();
             push_data(dbus, 1);
         }
@@ -277,7 +277,7 @@ var PROTOCOL = "cifs";
                 return;
             }
             if (force || (selected_linkease_edition() == "full" && !linkease_full_supported())) {
-                hint.innerHTML = dbus["linkease_full_support_hint"] || "当前设备不支持 LinkEase Full，请使用 Standard 或精简版本；如需使用 Full，请确认需要开启并启用 usb2jffs。";
+                hint.innerHTML = dbus["linkease_full_support_hint"] || "当前设备不支持完整版，请使用标准版；完整版需要 1GB 以上内存，并需要开启并启用 usb2jffs。";
                 hint.style.display = "";
             } else {
                 hint.style.display = "none";
@@ -797,9 +797,8 @@ var PROTOCOL = "cifs";
                                                     <label>运行版本</label>
                                                 </th>
                                                 <td colspan="2">
-                                                    <label><input type="radio" name="linkease_edition" value="standard" onclick="handle_linkease_edition_change();"> Standard 版本</label>
-                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="full" onclick="handle_linkease_edition_change();"> Full 版本</label>
-                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="lite" onclick="handle_linkease_edition_change();"> 精简版本（内存小于512M推荐）</label>
+                                                    <label><input type="radio" name="linkease_edition" value="standard" onclick="handle_linkease_edition_change();"> 标准版</label>
+                                                    <label style="margin-left:18px;"><input type="radio" name="linkease_edition" value="full" onclick="handle_linkease_edition_change();"> 完整版</label>
                                                     <div id="linkease_proxy_hint" style="display:none;margin-top:8px;color:#FC0;">当前系统 httpd 不支持 /apps/ 反向代理，已使用端口直连。建议升级系统到最新版本以获得更好的访问体验。</div>
                                                     <div id="linkease_full_support_hint" style="display:none;margin-top:8px;color:#FC0;"></div>
                                                 </td>

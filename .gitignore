@@ -2,3 +2,4 @@ up.sh
 linkease.tar.gz
 __pycache__
 artifacts/
+linkease/bin/linkease-full
