@@ -7,6 +7,7 @@ alias echo_date='echo $(date +%Y年%m月%d日\ %X):'
 FULL_BIN=/koolshare/bin/linkease-full
 FULL_PID_FILE=/var/run/linkease-full.pid
 FULL_MIN_MEM_KB=900000
+STANDARD_PORT=8897
 DESKTOP_PORT=19290
 APP_DIR=/koolshare/linkease
 APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"
@@ -424,13 +425,16 @@ clean_iptables_port(){
 }
 
 load_iptables(){
+	clean_iptables_port ${STANDARD_PORT}
 	clean_iptables_port ${DESKTOP_PORT}
+	iptables -t filter -I INPUT -p tcp --dport ${STANDARD_PORT} -j ACCEPT >/dev/null 2>&1
 	if [ "$LINKEASE_ACTIVE_EDITION" = "full" ]; then
 		iptables -t filter -I INPUT -p tcp --dport ${DESKTOP_PORT} -j ACCEPT >/dev/null 2>&1
 	fi
 }
 
 del_iptables(){
+	clean_iptables_port ${STANDARD_PORT}
 	clean_iptables_port ${DESKTOP_PORT}
 }
 

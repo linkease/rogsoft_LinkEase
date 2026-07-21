@@ -185,10 +185,16 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         expected = [
             "clean_iptables_port()",
             "iptables -D INPUT -p tcp --dport $1 -j ACCEPT",
+            "STANDARD_PORT=8897",
+            "clean_iptables_port ${STANDARD_PORT}",
             "clean_iptables_port ${DESKTOP_PORT}",
         ]
         for item in expected:
             self.assertIn(item, self.config)
+        self.assertIn(
+            "iptables -t filter -I INPUT -p tcp --dport ${STANDARD_PORT} -j ACCEPT",
+            self.config,
+        )
         self.assertNotIn('grep "${DESKTOP_PORT}\\\\|${APPTUNNEL_PORT}"', self.config)
         self.assertNotIn("linkease_clean_iptables.sh", self.config)
 
