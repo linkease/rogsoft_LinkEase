@@ -224,8 +224,6 @@ def extract_full_artifact(archive_path, artifact_dir):
             if member.isdir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue
-            if not member.isfile():
-                continue
             target.parent.mkdir(parents=True, exist_ok=True)
             if member.issym():
                 if target.exists() or target.is_symlink():

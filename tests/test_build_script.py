@@ -178,12 +178,16 @@ class BuildScriptTest(unittest.TestCase):
             self.assertEqual(conf["md5"], module.md5sum(root / "linkease.tar.gz"))
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
-            self.assertIn("linkease/bin/linkease-full", members)
-            self.assertIn("linkease/bin/apptunnel-client", members)
-            self.assertIn("linkease/linkmount_bin/linkmount_bin", members)
-            self.assertIn("linkease/scripts/mountremote-watch-root.sh", members)
-            self.assertNotIn("linkease/bin/linkease-desktop", members)
-            self.assertFalse(any(name.startswith("linkease/kaiplus/") for name in members))
+                self.assertIn("linkease/bin/linkease-full", members)
+                self.assertIn("linkease/bin/apptunnel-client", members)
+                self.assertIn("linkease/linkmount_bin/linkmount_bin", members)
+                self.assertIn("linkease/linkmount_bin/lib/libexample.so.1", members)
+                self.assertIn("linkease/scripts/mountremote-watch-root.sh", members)
+                self.assertNotIn("linkease/bin/linkease-desktop", members)
+                self.assertFalse(any(name.startswith("linkease/kaiplus/") for name in members))
+                member = archive.getmember("linkease/linkmount_bin/lib/libexample.so.1")
+                self.assertTrue(member.issym())
+                self.assertEqual(member.linkname, "libexample.so")
 
     def test_build_module_rejects_path_traversal_module_name(self):
         module = self.load_build_module()
