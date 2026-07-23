@@ -43,6 +43,7 @@ class BuildScriptTest(unittest.TestCase):
         (artifact / "linkmount_bin" / "linkmount_bin").write_text("#!/bin/sh\n", encoding="utf-8")
         (artifact / "linkmount_bin" / "linkmount_bin").chmod(0o755)
         (artifact / "linkmount_bin" / "lib" / "libexample.so").write_text("so\n", encoding="utf-8")
+        (artifact / "linkmount_bin" / "lib" / "libexample.so.1").symlink_to("libexample.so")
         (artifact / "scripts").mkdir()
         for name in ("mountremote-ctl.sh", "mountremote-paths.sh", "mountremote-watch-root.sh"):
             path = artifact / "scripts" / name
@@ -77,22 +78,26 @@ class BuildScriptTest(unittest.TestCase):
             self.assertFalse((root / "linkease" / "kaiplus").exists())
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
-            self.assertIn("linkease/bin/linkease-full", members)
-            self.assertIn("linkease/bin/apptunnel-client", members)
-            self.assertIn("linkease/bin/linkremote-agent", members)
-            self.assertIn("linkease/bin/heif-converter", members)
-            self.assertIn("linkease/bin/hostlink", members)
-            self.assertIn("linkease/linkmount_bin/linkmount_bin", members)
-            self.assertIn("linkease/linkmount_bin/lib/libexample.so", members)
-            self.assertIn("linkease/scripts/mountremote-ctl.sh", members)
-            self.assertIn("linkease/runtime/manifest.json", members)
-            self.assertFalse(
-                any(
-                    name == "linkease/kaiplus"
-                    or name.startswith("linkease/kaiplus/")
-                    for name in members
+                self.assertIn("linkease/bin/linkease-full", members)
+                self.assertIn("linkease/bin/apptunnel-client", members)
+                self.assertIn("linkease/bin/linkremote-agent", members)
+                self.assertIn("linkease/bin/heif-converter", members)
+                self.assertIn("linkease/bin/hostlink", members)
+                self.assertIn("linkease/linkmount_bin/linkmount_bin", members)
+                self.assertIn("linkease/linkmount_bin/lib/libexample.so", members)
+                self.assertIn("linkease/linkmount_bin/lib/libexample.so.1", members)
+                symlink = archive.getmember("linkease/linkmount_bin/lib/libexample.so.1")
+                self.assertTrue(symlink.issym())
+                self.assertEqual(symlink.linkname, "libexample.so")
+                self.assertIn("linkease/scripts/mountremote-ctl.sh", members)
+                self.assertIn("linkease/runtime/manifest.json", members)
+                self.assertFalse(
+                    any(
+                        name == "linkease/kaiplus"
+                        or name.startswith("linkease/kaiplus/")
+                        for name in members
+                    )
                 )
-            )
 
     def test_build_upx_compresses_full_binary_when_available(self):
         module = self.load_build_module()

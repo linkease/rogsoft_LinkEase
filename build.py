@@ -69,7 +69,7 @@ def copy_tree(src, dst):
     dst = Path(dst)
     if dst.exists():
         shutil.rmtree(dst)
-    shutil.copytree(src, dst)
+    shutil.copytree(src, dst, symlinks=True)
 
 def find_runtime_artifact_root(artifact_dir):
     artifact_dir = Path(artifact_dir)
@@ -144,7 +144,7 @@ def stage_full_artifacts(module_dir, artifact_dir):
 
 def remove_staged_full_artifact(module_dir):
     module_dir = Path(module_dir)
-    for binary in ("linkease-full", "apptunnel-client", "linkremote-agent", "hostlink"):
+    for binary in ("linkease-full", "apptunnel-client", "linkremote-agent", "heif-converter", "hostlink"):
         path = module_dir / "bin" / binary
         if path.exists():
             path.unlink()
@@ -155,6 +155,43 @@ def remove_staged_full_artifact(module_dir):
         path = module_dir / "scripts" / script
         if path.exists():
             path.unlink()
+
+def backup_path(src, dst):
+    src = Path(src)
+    dst = Path(dst)
+    if src.is_symlink():
+        os.symlink(os.readlink(src), dst)
+    elif src.is_dir():
+        shutil.copytree(src, dst, symlinks=True)
+    elif src.exists():
+        shutil.copy2(src, dst)
+
+def restore_staged_paths(module_dir, backup_dir):
+    module_dir = Path(module_dir)
+    backup_dir = Path(backup_dir)
+    remove_staged_full_artifact(module_dir)
+    for backup in backup_dir.iterdir():
+        rel = Path(*backup.name.split("__"))
+        target = module_dir / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            if target.is_dir() and not target.is_symlink():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
+        if backup.is_symlink():
+            os.symlink(os.readlink(backup), target)
+        elif backup.is_dir():
+            shutil.copytree(backup, target, symlinks=True)
+        else:
+            shutil.copy2(backup, target)
+
+def runtime_stage_paths(module_dir):
+    module_dir = Path(module_dir)
+    paths = [module_dir / "bin" / binary for binary in RUNTIME_BINARIES]
+    paths.extend(module_dir / path for path in ("linkmount_bin", "runtime"))
+    paths.extend(module_dir / "scripts" / script for script in RUNTIME_SCRIPTS)
+    return paths
 
 def download_file(url, dest_path):
     dest_path = Path(dest_path)
@@ -190,6 +227,13 @@ def extract_full_artifact(archive_path, artifact_dir):
             if not member.isfile():
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
+            if member.issym():
+                if target.exists() or target.is_symlink():
+                    target.unlink()
+                os.symlink(member.linkname, target)
+                continue
+            if not member.isfile():
+                continue
             source = archive.extractfile(member)
             if source is None:
                 raise FileNotFoundError("cannot extract full artifact member: %s" % member.name)
@@ -276,25 +320,31 @@ def build_module(root=None, artifact_dir=None, full_artifact_url=None, full_arti
         raise FileNotFoundError("not found %s file，check install.sh file" % install_path)
     print("build...")
 
-    if artifact_dir:
-        stage_full_artifacts(module_path, artifact_dir)
-    elif not skip_download:
-        stage_downloaded_full_artifact(
-            module_path,
-            conf.get("full_artifact_url"),
-            conf.get("full_artifact_sha256"),
-            root,
-        )
+    with tempfile.TemporaryDirectory(prefix=".linkease-stage-backup-", dir=str(root)) as backup_root:
+        backup_dir = Path(backup_root)
+        for path in runtime_stage_paths(module_path):
+            if path.exists() or path.is_symlink():
+                rel = path.relative_to(module_path)
+                backup_path(path, backup_dir / "__".join(rel.parts))
+        if artifact_dir:
+            stage_full_artifacts(module_path, artifact_dir)
+        elif not skip_download:
+            stage_downloaded_full_artifact(
+                module_path,
+                conf.get("full_artifact_url"),
+                conf.get("full_artifact_sha256"),
+                root,
+            )
 
-    with open(module_path / "version", "w", encoding="utf-8") as fw:
-        fw.write(conf["version"] + "\n")
+        with open(module_path / "version", "w", encoding="utf-8") as fw:
+            fw.write(conf["version"] + "\n")
 
-    tar_path = root / (module + ".tar.gz")
-    if tar_path.exists():
-        tar_path.unlink()
-    with tarfile.open(tar_path, "w:gz") as tf:
-        tf.add(module_path, arcname=module)
-    remove_staged_full_artifact(module_path)
+        tar_path = root / (module + ".tar.gz")
+        if tar_path.exists():
+            tar_path.unlink()
+        with tarfile.open(tar_path, "w:gz") as tf:
+            tf.add(module_path, arcname=module)
+        restore_staged_paths(module_path, backup_dir)
     conf["md5"] = md5sum(tar_path)
     conf_path = root / "config.json.js"
     with open(conf_path, "w", encoding="utf-8") as fw:

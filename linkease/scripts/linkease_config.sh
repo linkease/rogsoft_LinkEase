@@ -244,9 +244,12 @@ configure_data_paths(){
 	export LINKEASE_APPTUNNEL_DATA_DIR=${LINKEASE_DATA_ROOT}/apptunnel
 	export LINKEASE_REMOTE_MOUNT_ROOT=${LINKEASE_DATA_ROOT}/.linkease_mounts
 	export MOUNTREMOTE_ALLOWED_MOUNT_PREFIX=${LINKEASE_REMOTE_MOUNT_ROOT}
+	export MOUNTREMOTE_MODE=real
+	export MOUNTREMOTE_LINKREMOTE_AGENT_BINARY=${LINKREMOTE_AGENT_BIN}
+	export MOUNTREMOTE_SMBD_BINARY=${LINKMOUNT_BIN}
 	export MOUNTREMOTE_ROOT_WATCH_DIR=${APP_DIR}/mountremote-root
 	export MOUNTREMOTE_WORK_DIR=${LINKEASE_DATA_ROOT}/mountremote-runtime
-	export MOUNTREMOTE_SOCKET_DIR=${TEMP_PATH}/mountremote-sockets
+	export MOUNTREMOTE_SOCKET_DIR=/tmp/linkease-mr-sockets
 	export MOUNTREMOTE_SAMBA_DIR=${MOUNTREMOTE_SOCKET_DIR}/samba
 }
 
@@ -379,6 +382,7 @@ start_full_binary(){
 }
 
 start_standard_binary(){
+	modprobe cifs >/dev/null 2>&1 || true
 	start-stop-daemon -S -q -b -x $LEGACY_BIN -- run \
 		--deviceAddr ":${STANDARD_PORT}" \
 		--rootDir "$USER_DATA_PATH" \
@@ -433,6 +437,10 @@ kill_ee(){
 	killall linkease-desktop >/dev/null 2>&1
 	killall apptunnel-client >/dev/null 2>&1
 	killall linkremote-agent >/dev/null 2>&1
+	killall linkmount_bin >/dev/null 2>&1
+	killall ld-musl-armhf.so.1 >/dev/null 2>&1
+	killall ld-musl-aarch64.so.1 >/dev/null 2>&1
+	killall ld-musl-x86_64.so.1 >/dev/null 2>&1
 	killall hostlink >/dev/null 2>&1
 	rm -f $FULL_PID_FILE /var/run/linkease-desktop.pid /var/run/linkease-apptunnel.pid >/dev/null 2>&1
 }

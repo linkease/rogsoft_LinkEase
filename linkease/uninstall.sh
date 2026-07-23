@@ -7,6 +7,10 @@ killall linkease-full > /dev/null 2>&1
 killall linkease-desktop > /dev/null 2>&1
 killall apptunnel-client > /dev/null 2>&1
 killall linkremote-agent > /dev/null 2>&1
+killall linkmount_bin > /dev/null 2>&1
+killall ld-musl-armhf.so.1 > /dev/null 2>&1
+killall ld-musl-aarch64.so.1 > /dev/null 2>&1
+killall ld-musl-x86_64.so.1 > /dev/null 2>&1
 killall hostlink > /dev/null 2>&1
 rm -rf /koolshare/init.d/*linkease.sh
 rm -rf /koolshare/init.d/*LinkEase.sh

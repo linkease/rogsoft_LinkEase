@@ -79,6 +79,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             'LINKEASE_DATA_ROOT=${LINKEASE_DATA_DISK}/.linkease_data',
             'LINKEASE_RECYCLE_ROOT=${LINKEASE_DATA_DISK}/.linkease_recycle',
             'LINKEASE_DATA_ROOT=${APP_DIR}/data/bootstrap',
+            'MOUNTREMOTE_SOCKET_DIR=/tmp/linkease-mr-sockets',
             "persist_migrated_betterapps_disk",
         ]
         for marker in markers:
@@ -90,9 +91,25 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertLess(linkease_index, betterapps_index)
         self.assertLess(betterapps_index, bootstrap_index)
 
+    def test_apptunnel_mountremote_real_runner_is_configured_for_asuswrt(self):
+        expected = [
+            "export MOUNTREMOTE_MODE=real",
+            "export MOUNTREMOTE_LINKREMOTE_AGENT_BINARY=${LINKREMOTE_AGENT_BIN}",
+            "export MOUNTREMOTE_SMBD_BINARY=${LINKMOUNT_BIN}",
+            "export MOUNTREMOTE_WORK_DIR=${LINKEASE_DATA_ROOT}/mountremote-runtime",
+            "export MOUNTREMOTE_SOCKET_DIR=/tmp/linkease-mr-sockets",
+            "export MOUNTREMOTE_SAMBA_DIR=${MOUNTREMOTE_SOCKET_DIR}/samba",
+            "modprobe cifs >/dev/null 2>&1 || true",
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+        self.assertNotIn("export MOUNTREMOTE_SYSTEM_COMMAND_HELPER", self.config)
+
     def test_process_lifecycle_manages_only_desktop_and_apptunnel(self):
         expected = [
             "killall linkease-full",
+            "killall linkmount_bin",
+            "killall ld-musl-aarch64.so.1",
             "start_full_binary",
             "load_iptables",
             "del_iptables",

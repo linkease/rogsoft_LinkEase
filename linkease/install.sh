@@ -273,6 +273,10 @@ install_now(){
 	killall linkease-desktop > /dev/null 2>&1
 	killall apptunnel-client > /dev/null 2>&1
 	killall linkremote-agent > /dev/null 2>&1
+	killall linkmount_bin > /dev/null 2>&1
+	killall ld-musl-armhf.so.1 > /dev/null 2>&1
+	killall ld-musl-aarch64.so.1 > /dev/null 2>&1
+	killall ld-musl-x86_64.so.1 > /dev/null 2>&1
 	killall hostlink > /dev/null 2>&1
 	rm -rf /koolshare/bin/link-ease >/dev/null 2>&1
 	rm -rf /koolshare/bin/linkease-desktop >/dev/null 2>&1
@@ -305,11 +309,13 @@ install_now(){
 	chmod 755 /koolshare/scripts/mountremote-*.sh >/dev/null 2>&1
 	chmod 755 /koolshare/bin/${FULL_BIN} >/dev/null 2>&1
 	chmod 755 /koolshare/bin/apptunnel-client >/dev/null 2>&1
-	chmod 755 /koolshare/bin/linkremote-agent >/dev/null 2>&1
-	chmod 755 /koolshare/bin/hostlink >/dev/null 2>&1
-	chmod 755 /koolshare/bin/heif-converter >/dev/null 2>&1
-	chmod 755 ${LINKMOUNT_BIN_DIR}/linkmount_bin >/dev/null 2>&1
-	chmod 755 /koolshare/bin/linkease-plugins/aria2.sh >/dev/null 2>&1
+		chmod 755 /koolshare/bin/linkremote-agent >/dev/null 2>&1
+		chmod 755 /koolshare/bin/hostlink >/dev/null 2>&1
+		chmod 755 /koolshare/bin/heif-converter >/dev/null 2>&1
+		chmod 755 ${LINKMOUNT_BIN_DIR}/linkmount_bin >/dev/null 2>&1
+		chmod 755 ${LINKMOUNT_BIN_DIR}/lib/ld-musl-*.so.1 >/dev/null 2>&1
+		chmod 755 ${LINKMOUNT_BIN_DIR}/lib/*.so* >/dev/null 2>&1
+		chmod 755 /koolshare/bin/linkease-plugins/aria2.sh >/dev/null 2>&1
 	# make start up script link
 	if [ ! -L "/koolshare/init.d/S99${module}.sh" -a -f "/koolshare/scripts/${module}_config.sh" ];then
 		ln -sf /koolshare/scripts/${module}_config.sh /koolshare/init.d/S99${module}.sh
