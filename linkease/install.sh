@@ -10,6 +10,7 @@ module=${DIR##*/}
 FULL_BIN=linkease-full
 FULL_MIN_MEM_KB=900000
 APP_DIR=/koolshare/linkease
+LINKMOUNT_BIN_DIR=${APP_DIR}/linkmount_bin
 
 get_model(){
 	local ODMPID=$(nvram get odmpid)
@@ -267,12 +268,18 @@ install_now(){
 		killall link-ease > /dev/null 2>&1
 	fi
 	if [ "${ENABLE}" == "1" -o -n "$(pidof ${FULL_BIN})" ];then
-		killall ${FULL_BIN} > /dev/null 2>&1
+	killall ${FULL_BIN} > /dev/null 2>&1
 	fi
 	killall linkease-desktop > /dev/null 2>&1
 	killall apptunnel-client > /dev/null 2>&1
+	killall linkremote-agent > /dev/null 2>&1
+	killall hostlink > /dev/null 2>&1
+	rm -rf /koolshare/bin/link-ease >/dev/null 2>&1
 	rm -rf /koolshare/bin/linkease-desktop >/dev/null 2>&1
 	rm -rf /koolshare/bin/apptunnel-client >/dev/null 2>&1
+	rm -rf /koolshare/bin/linkremote-agent >/dev/null 2>&1
+	rm -rf /koolshare/bin/hostlink >/dev/null 2>&1
+	rm -rf ${LINKMOUNT_BIN_DIR} >/dev/null 2>&1
 	# remove some file first
 	find /koolshare/init.d -name "*linkease.sh" | xargs rm -rf >/dev/null 2>&1
 	migrate_betterapps_dbus
@@ -286,10 +293,22 @@ install_now(){
 	cp -rf /tmp/${module}/scripts/* /koolshare/scripts/
 	cp -rf /tmp/${module}/webs/* /koolshare/webs/
 	cp -rf /tmp/${module}/uninstall.sh /koolshare/scripts/uninstall_${module}.sh
+	mkdir -p ${APP_DIR}
+	if [ -d /tmp/${module}/linkmount_bin ];then
+		cp -rf /tmp/${module}/linkmount_bin ${APP_DIR}/
+	fi
+	if [ -d /tmp/${module}/runtime ];then
+		cp -rf /tmp/${module}/runtime ${APP_DIR}/
+	fi
 	# Permissions
 	chmod 755 /koolshare/scripts/${module}_*.sh >/dev/null 2>&1
+	chmod 755 /koolshare/scripts/mountremote-*.sh >/dev/null 2>&1
 	chmod 755 /koolshare/bin/${FULL_BIN} >/dev/null 2>&1
-	chmod 755 /koolshare/bin/link-ease >/dev/null 2>&1 || true
+	chmod 755 /koolshare/bin/apptunnel-client >/dev/null 2>&1
+	chmod 755 /koolshare/bin/linkremote-agent >/dev/null 2>&1
+	chmod 755 /koolshare/bin/hostlink >/dev/null 2>&1
+	chmod 755 /koolshare/bin/heif-converter >/dev/null 2>&1
+	chmod 755 ${LINKMOUNT_BIN_DIR}/linkmount_bin >/dev/null 2>&1
 	chmod 755 /koolshare/bin/linkease-plugins/aria2.sh >/dev/null 2>&1
 	# make start up script link
 	if [ ! -L "/koolshare/init.d/S99${module}.sh" -a -f "/koolshare/scripts/${module}_config.sh" ];then

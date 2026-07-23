@@ -1,10 +1,10 @@
 {
     "description": "易有云 （LinkEase） 手机相册同步，远程管文件，看视频！",
-    "full_artifact_sha256": "bca98262a50c938fce55539ac75c3e309f059d608e49ea11221f83c91a2a815e",
-    "full_artifact_url": "file:///mnt/sata1-1/firmware/asusgo-build/local-artifacts/linkease/linkease-full-binary-2.17.7.tar.gz",
+    "full_artifact_sha256": "883fd706397b3628aed9542cdae098baa166b08461df49b2f75dc8da2cd2c96c",
+    "full_artifact_url": "file:///projects/workspace-linkease-ubuntu/linkease-github/linkease-desktop/release-runtime/3.0.3-e96a7b5/linkease-runtime-3.0.3-linux-arm32.tar.gz",
     "home_url": "Module_linkease.asp",
-    "md5": "a9ececce9b8927955e642e9557dbb49f",
+    "md5": "48eb855070cf5d461570b3c47f8bcd45",
     "module": "linkease",
     "title": "易有云",
-    "version": "2.17.8"
+    "version": "3.0.3"
 }

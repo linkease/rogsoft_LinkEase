@@ -17,6 +17,18 @@ from pathlib import Path
 parent_path = os.path.dirname(os.path.realpath(__file__))
 FULL_ARTIFACT_FIELDS = ("full_artifact_url", "full_artifact_sha256")
 FULL_BINARY = "linkease-full"
+RUNTIME_BINARIES = (
+    "linkease-full",
+    "apptunnel-client",
+    "linkremote-agent",
+    "heif-converter",
+    "hostlink",
+)
+RUNTIME_SCRIPTS = (
+    "mountremote-ctl.sh",
+    "mountremote-paths.sh",
+    "mountremote-watch-root.sh",
+)
 
 def md5sum(full_path):
     with open(full_path, 'rb') as rf:
@@ -59,28 +71,90 @@ def copy_tree(src, dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
 
+def find_runtime_artifact_root(artifact_dir):
+    artifact_dir = Path(artifact_dir)
+    if (artifact_dir / "bin" / FULL_BINARY).is_file():
+        return artifact_dir
+    if (artifact_dir / FULL_BINARY).is_file():
+        return artifact_dir
+    matches = [p.parent.parent for p in artifact_dir.rglob("bin/%s" % FULL_BINARY)]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise FileNotFoundError("missing full runtime binary under artifact dir: %s" % artifact_dir)
+    raise ValueError("ambiguous runtime artifact roots under: %s" % artifact_dir)
+
+def stage_runtime_metadata(runtime_root, module_dir):
+    runtime_root = Path(runtime_root)
+    runtime_dir = Path(module_dir) / "runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("manifest.json", "checksums.txt"):
+        src = runtime_root / name
+        if src.is_file():
+            shutil.copy2(src, runtime_dir / name)
+
 def stage_full_artifacts(module_dir, artifact_dir):
     module_dir = Path(module_dir)
-    artifact_dir = Path(artifact_dir)
+    artifact_dir = find_runtime_artifact_root(artifact_dir)
     bin_dir = module_dir / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
 
-    src = artifact_dir / FULL_BINARY
-    if not src.is_file():
-        raise FileNotFoundError("missing full runtime binary: %s" % src)
-    dst = bin_dir / FULL_BINARY
-    shutil.copy2(src, dst)
-    make_executable(dst)
-    compress_with_upx(dst)
+    runtime_bin_dir = artifact_dir / "bin"
+    if runtime_bin_dir.is_dir():
+        for binary in RUNTIME_BINARIES:
+            src = runtime_bin_dir / binary
+            if not src.is_file():
+                if binary == FULL_BINARY:
+                    raise FileNotFoundError("missing full runtime binary: %s" % src)
+                continue
+            dst = bin_dir / binary
+            shutil.copy2(src, dst)
+            make_executable(dst)
+            if binary == FULL_BINARY:
+                compress_with_upx(dst)
+
+        linkmount_src = artifact_dir / "linkmount_bin"
+        if linkmount_src.is_dir():
+            copy_tree(linkmount_src, module_dir / "linkmount_bin")
+            linkmount_bin = module_dir / "linkmount_bin" / "linkmount_bin"
+            if linkmount_bin.is_file():
+                make_executable(linkmount_bin)
+
+        script_dir = module_dir / "scripts"
+        script_dir.mkdir(parents=True, exist_ok=True)
+        for script in RUNTIME_SCRIPTS:
+            src = artifact_dir / "scripts" / script
+            if src.is_file():
+                dst = script_dir / script
+                shutil.copy2(src, dst)
+                make_executable(dst)
+        stage_runtime_metadata(artifact_dir, module_dir)
+    else:
+        src = artifact_dir / FULL_BINARY
+        if not src.is_file():
+            raise FileNotFoundError("missing full runtime binary: %s" % src)
+        dst = bin_dir / FULL_BINARY
+        shutil.copy2(src, dst)
+        make_executable(dst)
+        compress_with_upx(dst)
 
     kaiplus_dst = module_dir / "kaiplus"
     if kaiplus_dst.exists():
         shutil.rmtree(kaiplus_dst)
 
 def remove_staged_full_artifact(module_dir):
-    full_path = Path(module_dir) / "bin" / FULL_BINARY
-    if full_path.exists():
-        full_path.unlink()
+    module_dir = Path(module_dir)
+    for binary in ("linkease-full", "apptunnel-client", "linkremote-agent", "hostlink"):
+        path = module_dir / "bin" / binary
+        if path.exists():
+            path.unlink()
+    for path in (module_dir / "linkmount_bin", module_dir / "runtime"):
+        if path.exists():
+            shutil.rmtree(path)
+    for script in RUNTIME_SCRIPTS:
+        path = module_dir / "scripts" / script
+        if path.exists():
+            path.unlink()
 
 def download_file(url, dest_path):
     dest_path = Path(dest_path)
@@ -91,24 +165,39 @@ def download_file(url, dest_path):
 def extract_full_artifact(archive_path, artifact_dir):
     archive_path = Path(archive_path)
     artifact_dir = Path(artifact_dir)
-    found = set()
     with tarfile.open(archive_path, "r:*") as archive:
         for member in archive.getmembers():
+            name = Path(member.name)
+            parts = name.parts
+            if not parts or parts[0] in ("", ".", "..") or any(part == ".." for part in parts):
+                continue
+            rel = Path(*parts[1:]) if len(parts) > 1 else Path(parts[0])
+            if not rel.parts:
+                continue
+            allowed = (
+                rel == Path(FULL_BINARY)
+                or rel.name in RUNTIME_BINARIES and rel.parent == Path("bin")
+                or rel.parts[0] == "linkmount_bin"
+                or rel.parts[0] == "scripts" and rel.name in RUNTIME_SCRIPTS
+                or rel in (Path("manifest.json"), Path("checksums.txt"))
+            )
+            if not allowed:
+                continue
+            target = artifact_dir / rel
+            if member.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
             if not member.isfile():
                 continue
-            binary = Path(member.name).name
-            if binary != FULL_BINARY or binary in found:
-                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
             source = archive.extractfile(member)
             if source is None:
-                raise FileNotFoundError("cannot extract full runtime binary: %s" % member.name)
-            dst = artifact_dir / binary
-            with open(dst, "wb") as output:
+                raise FileNotFoundError("cannot extract full artifact member: %s" % member.name)
+            with open(target, "wb") as output:
                 shutil.copyfileobj(source, output)
-            make_executable(dst)
-            found.add(binary)
-    if FULL_BINARY not in found:
-        raise FileNotFoundError("full artifact missing runtime binary: %s" % FULL_BINARY)
+            if rel.name in RUNTIME_BINARIES or rel.name in RUNTIME_SCRIPTS or rel == Path("linkmount_bin/linkmount_bin"):
+                make_executable(target)
+    find_runtime_artifact_root(artifact_dir)
 
 def stage_downloaded_full_artifact(module_dir, full_artifact_url, full_artifact_sha256, root):
     full_artifact_url = str(full_artifact_url or "").strip()

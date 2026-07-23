@@ -32,18 +32,34 @@ class BuildScriptTest(unittest.TestCase):
         self.assertTrue(config["full_artifact_url"].strip())
         self.assertRegex(config["full_artifact_sha256"], r"^[0-9a-f]{64}$")
 
-    def test_build_stages_full_binary_without_kaiplus(self):
+    def make_runtime_bundle(self, root):
+        artifact = root / "artifact"
+        (artifact / "bin").mkdir(parents=True)
+        for name in ("linkease-full", "apptunnel-client", "linkremote-agent", "heif-converter", "hostlink"):
+            path = artifact / "bin" / name
+            path.write_text("#!/bin/sh\n", encoding="utf-8")
+            path.chmod(0o755)
+        (artifact / "linkmount_bin" / "lib").mkdir(parents=True)
+        (artifact / "linkmount_bin" / "linkmount_bin").write_text("#!/bin/sh\n", encoding="utf-8")
+        (artifact / "linkmount_bin" / "linkmount_bin").chmod(0o755)
+        (artifact / "linkmount_bin" / "lib" / "libexample.so").write_text("so\n", encoding="utf-8")
+        (artifact / "scripts").mkdir()
+        for name in ("mountremote-ctl.sh", "mountremote-paths.sh", "mountremote-watch-root.sh"):
+            path = artifact / "scripts" / name
+            path.write_text("#!/bin/sh\n", encoding="utf-8")
+            path.chmod(0o755)
+        (artifact / "manifest.json").write_text("{}\n", encoding="utf-8")
+        (artifact / "checksums.txt").write_text("checksums\n", encoding="utf-8")
+        return artifact
+
+    def test_build_stages_runtime_bundle_without_kaiplus(self):
         module = self.load_build_module()
 
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             shutil.copytree(ROOT / "linkease", root / "linkease")
             shutil.copy2(ROOT / "config.json.js", root / "config.json.js")
-            artifact = root / "artifact"
-            artifact.mkdir()
-            path = artifact / "linkease-full"
-            path.write_text("#!/bin/sh\n", encoding="utf-8")
-            path.chmod(0o755)
+            artifact = self.make_runtime_bundle(root)
             kaiplus = artifact / "kaiplus"
             kaiplus.mkdir()
             (kaiplus / "marker").write_text("must not be staged\n", encoding="utf-8")
@@ -53,12 +69,23 @@ class BuildScriptTest(unittest.TestCase):
             self.assertEqual(conf["module"], "linkease")
             self.assertTrue((root / "linkease.tar.gz").is_file())
             self.assertFalse((root / "linkease" / "bin" / "linkease-full").exists())
-            self.assertFalse((root / "linkease" / "bin" / "linkease-desktop").exists())
             self.assertFalse((root / "linkease" / "bin" / "apptunnel-client").exists())
+            self.assertFalse((root / "linkease" / "bin" / "linkremote-agent").exists())
+            self.assertFalse((root / "linkease" / "bin" / "hostlink").exists())
+            self.assertFalse((root / "linkease" / "linkmount_bin").exists())
+            self.assertFalse((root / "linkease" / "runtime").exists())
             self.assertFalse((root / "linkease" / "kaiplus").exists())
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
             self.assertIn("linkease/bin/linkease-full", members)
+            self.assertIn("linkease/bin/apptunnel-client", members)
+            self.assertIn("linkease/bin/linkremote-agent", members)
+            self.assertIn("linkease/bin/heif-converter", members)
+            self.assertIn("linkease/bin/hostlink", members)
+            self.assertIn("linkease/linkmount_bin/linkmount_bin", members)
+            self.assertIn("linkease/linkmount_bin/lib/libexample.so", members)
+            self.assertIn("linkease/scripts/mountremote-ctl.sh", members)
+            self.assertIn("linkease/runtime/manifest.json", members)
             self.assertFalse(
                 any(
                     name == "linkease/kaiplus"
@@ -75,8 +102,8 @@ class BuildScriptTest(unittest.TestCase):
             shutil.copytree(ROOT / "linkease", root / "linkease")
             shutil.copy2(ROOT / "config.json.js", root / "config.json.js")
             artifact = root / "artifact"
-            artifact.mkdir()
-            path = artifact / "linkease-full"
+            (artifact / "bin").mkdir(parents=True)
+            path = artifact / "bin" / "linkease-full"
             path.write_text("#!/bin/sh\n", encoding="utf-8")
             path.chmod(0o755)
             fake_bin = root / "fake-bin"
@@ -119,15 +146,12 @@ class BuildScriptTest(unittest.TestCase):
             root = Path(td)
             shutil.copytree(ROOT / "linkease", root / "linkease")
             artifact_root = root / "artifact-src"
-            (artifact_root / "bundle" / "bin").mkdir(parents=True)
+            bundle = self.make_runtime_bundle(artifact_root / "bundle")
             (artifact_root / "bundle" / "kaiplus").mkdir()
-            path = artifact_root / "bundle" / "bin" / "linkease-full"
-            path.write_text("#!/bin/sh\n", encoding="utf-8")
-            path.chmod(0o755)
             (artifact_root / "bundle" / "kaiplus" / "marker").write_text("ignored\n", encoding="utf-8")
             archive_path = root / "full-artifact.tar.gz"
             with tarfile.open(archive_path, "w:gz") as archive:
-                archive.add(artifact_root / "bundle", arcname="bundle")
+                archive.add(bundle, arcname="bundle")
             sha256 = hashlib.sha256(archive_path.read_bytes()).hexdigest()
             (root / "config.json.js").write_text(
                 json.dumps(
@@ -150,8 +174,10 @@ class BuildScriptTest(unittest.TestCase):
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
             self.assertIn("linkease/bin/linkease-full", members)
+            self.assertIn("linkease/bin/apptunnel-client", members)
+            self.assertIn("linkease/linkmount_bin/linkmount_bin", members)
+            self.assertIn("linkease/scripts/mountremote-watch-root.sh", members)
             self.assertNotIn("linkease/bin/linkease-desktop", members)
-            self.assertNotIn("linkease/bin/apptunnel-client", members)
             self.assertFalse(any(name.startswith("linkease/kaiplus/") for name in members))
 
     def test_build_module_rejects_path_traversal_module_name(self):

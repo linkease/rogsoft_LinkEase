@@ -6,12 +6,16 @@ killall link-ease > /dev/null 2>&1
 killall linkease-full > /dev/null 2>&1
 killall linkease-desktop > /dev/null 2>&1
 killall apptunnel-client > /dev/null 2>&1
+killall linkremote-agent > /dev/null 2>&1
+killall hostlink > /dev/null 2>&1
 rm -rf /koolshare/init.d/*linkease.sh
 rm -rf /koolshare/init.d/*LinkEase.sh
 rm -rf /koolshare/bin/link-ease
 rm -rf /koolshare/bin/linkease-full
 rm -rf /koolshare/bin/linkease-desktop
 rm -rf /koolshare/bin/apptunnel-client
+rm -rf /koolshare/bin/linkremote-agent
+rm -rf /koolshare/bin/hostlink
 rm -rf /koolshare/bin/linkease-plugins
 rm -rf /koolshare/bin/linkease-media
 rm -rf /koolshare/bin/heif-converter
@@ -20,6 +24,7 @@ rm -rf /koolshare/res/icon-linkease.png
 rm -rf /koolshare/res/icon-LinkEase.png
 rm -rf /koolshare/scripts/linkease*.sh
 rm -rf /koolshare/scripts/LinkEase*.sh
+rm -rf /koolshare/scripts/mountremote-*.sh
 rm -rf /koolshare/webs/Module_linkease.asp
 rm -rf /koolshare/webs/Module_LinkEase.asp
 rm -rf /koolshare/scripts/uninstall_linkease.sh

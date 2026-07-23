@@ -11,7 +11,12 @@ STANDARD_PORT=8897
 DESKTOP_PORT=19290
 APP_DIR=/koolshare/linkease
 APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"
-LEGACY_BIN=/koolshare/bin/link-ease
+LEGACY_BIN=/koolshare/bin/apptunnel-client
+LINKREMOTE_AGENT_BIN=/koolshare/bin/linkremote-agent
+HOSTLINK_BIN=/koolshare/bin/hostlink
+LINKMOUNT_BIN_DIR=${APP_DIR}/linkmount_bin
+LINKMOUNT_BIN=${LINKMOUNT_BIN_DIR}/linkmount_bin
+MOUNTREMOTE_CTL=/koolshare/scripts/mountremote-ctl.sh
 LINKEASE_ACTIVE_EDITION=
 
 export SERVER_HOST=0.0.0.0
@@ -19,6 +24,7 @@ export SERVER_PORT=${DESKTOP_PORT}
 export SERVER_MODE=release
 export SERVER_BASE_PATH=/apps/
 export LINKEASE_EDITION=nas-full
+export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${STANDARD_PORT}
 export KAIPLUS_ENABLED=0
 KAIPLUS_PROXY_TARGET=""
 
@@ -235,6 +241,13 @@ configure_data_paths(){
 	export USER_DATA_PATH=${LINKEASE_DATA_ROOT}/users/admin
 	export SYSTEM_DATA_PATH=${LINKEASE_DATA_ROOT}/system
 	export TEMP_PATH=${LINKEASE_DATA_ROOT}/tmp
+	export LINKEASE_APPTUNNEL_DATA_DIR=${LINKEASE_DATA_ROOT}/apptunnel
+	export LINKEASE_REMOTE_MOUNT_ROOT=${LINKEASE_DATA_ROOT}/.linkease_mounts
+	export MOUNTREMOTE_ALLOWED_MOUNT_PREFIX=${LINKEASE_REMOTE_MOUNT_ROOT}
+	export MOUNTREMOTE_ROOT_WATCH_DIR=${APP_DIR}/mountremote-root
+	export MOUNTREMOTE_WORK_DIR=${LINKEASE_DATA_ROOT}/mountremote-runtime
+	export MOUNTREMOTE_SOCKET_DIR=${TEMP_PATH}/mountremote-sockets
+	export MOUNTREMOTE_SAMBA_DIR=${MOUNTREMOTE_SOCKET_DIR}/samba
 }
 
 detect_full_runtime_support
@@ -366,7 +379,11 @@ start_full_binary(){
 }
 
 start_standard_binary(){
-	start-stop-daemon -S -q -b -x $LEGACY_BIN
+	start-stop-daemon -S -q -b -x $LEGACY_BIN -- run \
+		--deviceAddr ":${STANDARD_PORT}" \
+		--rootDir "$USER_DATA_PATH" \
+		--supplierCode "linkease" \
+		--allowPublic
 }
 
 stop_linkeaselite_runtime(){
@@ -415,6 +432,8 @@ kill_ee(){
 	killall linkease-full >/dev/null 2>&1
 	killall linkease-desktop >/dev/null 2>&1
 	killall apptunnel-client >/dev/null 2>&1
+	killall linkremote-agent >/dev/null 2>&1
+	killall hostlink >/dev/null 2>&1
 	rm -f $FULL_PID_FILE /var/run/linkease-desktop.pid /var/run/linkease-apptunnel.pid >/dev/null 2>&1
 }
 

@@ -84,6 +84,7 @@ class InstallUninstallContractTest(unittest.TestCase):
             'local TITLE="易有云"',
             "FULL_BIN=linkease-full",
             "APP_DIR=/koolshare/linkease",
+            "LINKMOUNT_BIN_DIR=${APP_DIR}/linkmount_bin",
         ]
         for item in expected:
             self.assertIn(item, self.install)
@@ -127,6 +128,10 @@ class InstallUninstallContractTest(unittest.TestCase):
         expected = [
             "killall link-ease",
             "killall ${FULL_BIN}",
+            "killall apptunnel-client",
+            "killall linkremote-agent",
+            "killall hostlink",
+            "rm -rf /koolshare/bin/link-ease",
             "rm -rf /koolshare/bin/linkease-desktop",
             "rm -rf /koolshare/bin/apptunnel-client",
         ]
@@ -166,7 +171,15 @@ class InstallUninstallContractTest(unittest.TestCase):
     def test_install_copies_full_runtime_without_kaiplus(self):
         expected = [
             "cp -rf /tmp/${module}/bin/* /koolshare/bin/",
+            "cp -rf /tmp/${module}/linkmount_bin ${APP_DIR}/",
+            "cp -rf /tmp/${module}/runtime ${APP_DIR}/",
             "chmod 755 /koolshare/bin/${FULL_BIN}",
+            "chmod 755 /koolshare/bin/apptunnel-client",
+            "chmod 755 /koolshare/bin/linkremote-agent",
+            "chmod 755 /koolshare/bin/hostlink",
+            "chmod 755 /koolshare/bin/heif-converter",
+            "chmod 755 ${LINKMOUNT_BIN_DIR}/linkmount_bin",
+            "chmod 755 /koolshare/scripts/mountremote-*.sh",
         ]
         for item in expected:
             self.assertIn(item, self.install)
@@ -187,9 +200,16 @@ class InstallUninstallContractTest(unittest.TestCase):
     def test_uninstall_removes_full_linkease_and_betterapps_leftovers_without_kaiplus(self):
         expected = [
             "killall linkease-full",
+            "killall apptunnel-client",
+            "killall linkremote-agent",
+            "killall hostlink",
             "rm -rf /koolshare/bin/linkease-full",
             "rm -rf /koolshare/bin/link-ease",
+            "rm -rf /koolshare/bin/apptunnel-client",
+            "rm -rf /koolshare/bin/linkremote-agent",
+            "rm -rf /koolshare/bin/hostlink",
             "rm -rf /koolshare/linkease",
+            "rm -rf /koolshare/scripts/mountremote-*.sh",
             "rm -rf /koolshare/bin/BetterApps",
             "rm -rf /koolshare/betterapps",
             "dbus remove betterapps_enable",
