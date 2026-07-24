@@ -151,7 +151,7 @@ def remove_staged_full_artifact(module_dir):
     module_dir = Path(module_dir)
     for binary in ("linkease-full", "link-ease", "linkremote-agent", "heif-converter", "hostlink"):
         path = module_dir / "bin" / binary
-        if path.exists():
+        if path.exists() or path.is_symlink():
             path.unlink()
     for path in (module_dir / "linkmount_bin", module_dir / "runtime"):
         if path.exists():

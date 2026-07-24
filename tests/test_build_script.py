@@ -72,6 +72,7 @@ class BuildScriptTest(unittest.TestCase):
             self.assertTrue((root / "linkease.tar.gz").is_file())
             self.assertFalse((root / "linkease" / "bin" / "linkease-full").exists())
             self.assertFalse((root / "linkease" / "bin" / "link-ease").exists())
+            self.assertFalse((root / "linkease" / "bin" / "link-ease").is_symlink())
             self.assertFalse((root / "linkease" / "bin" / "linkremote-agent").exists())
             self.assertFalse((root / "linkease" / "bin" / "hostlink").exists())
             self.assertFalse((root / "linkease" / "linkmount_bin").exists())
