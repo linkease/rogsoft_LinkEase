@@ -8,10 +8,11 @@ FULL_BIN=/koolshare/bin/linkease-full
 FULL_PID_FILE=/var/run/linkease-full.pid
 FULL_MIN_MEM_KB=900000
 STANDARD_PORT=8897
+APPTUNNEL_INTERNAL_PORT=19810
 DESKTOP_PORT=19290
 APP_DIR=/koolshare/linkease
 APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"
-LEGACY_BIN=/koolshare/bin/apptunnel-client
+LEGACY_BIN=/koolshare/bin/link-ease
 LINKREMOTE_AGENT_BIN=/koolshare/bin/linkremote-agent
 HOSTLINK_BIN=/koolshare/bin/hostlink
 LINKMOUNT_BIN_DIR=${APP_DIR}/linkmount_bin
@@ -24,7 +25,9 @@ export SERVER_PORT=${DESKTOP_PORT}
 export SERVER_MODE=release
 export SERVER_BASE_PATH=/apps/
 export LINKEASE_EDITION=nas-full
-export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${STANDARD_PORT}
+export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${APPTUNNEL_INTERNAL_PORT}
+export LINKEASE_APPTUNNEL_INTERNAL_ADDR=127.0.0.1:${APPTUNNEL_INTERNAL_PORT}
+export LINKEASE_APPTUNNEL_LEGACY_ADDR=0.0.0.0:${STANDARD_PORT}
 export KAIPLUS_ENABLED=0
 KAIPLUS_PROXY_TARGET=""
 
@@ -413,7 +416,6 @@ start_full(){
 	stop_linkeaselite_runtime
 	apply_go_memory_limits
 	ulimit -v unlimited 2>/dev/null || true
-	start_standard_binary
 	start_full_binary
 	detect_apps_proxy_state
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
@@ -435,7 +437,6 @@ kill_ee(){
 	killall link-ease >/dev/null 2>&1
 	killall linkease-full >/dev/null 2>&1
 	killall linkease-desktop >/dev/null 2>&1
-	killall apptunnel-client >/dev/null 2>&1
 	killall linkremote-agent >/dev/null 2>&1
 	killall linkmount_bin >/dev/null 2>&1
 	killall ld-musl-armhf.so.1 >/dev/null 2>&1

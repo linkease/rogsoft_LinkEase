@@ -128,7 +128,6 @@ class InstallUninstallContractTest(unittest.TestCase):
         expected = [
             "killall link-ease",
             "killall ${FULL_BIN}",
-            "killall apptunnel-client",
             "killall linkremote-agent",
             "killall linkmount_bin",
             "killall ld-musl-armhf.so.1",
@@ -137,7 +136,6 @@ class InstallUninstallContractTest(unittest.TestCase):
             "killall hostlink",
             "rm -rf /koolshare/bin/link-ease",
             "rm -rf /koolshare/bin/linkease-desktop",
-            "rm -rf /koolshare/bin/apptunnel-client",
         ]
         for item in expected:
             self.assertIn(item, self.install)
@@ -178,7 +176,7 @@ class InstallUninstallContractTest(unittest.TestCase):
             "cp -rf /tmp/${module}/linkmount_bin ${APP_DIR}/",
             "cp -rf /tmp/${module}/runtime ${APP_DIR}/",
             "chmod 755 /koolshare/bin/${FULL_BIN}",
-            "chmod 755 /koolshare/bin/apptunnel-client",
+            "chmod 755 /koolshare/bin/link-ease",
             "chmod 755 /koolshare/bin/linkremote-agent",
             "chmod 755 /koolshare/bin/hostlink",
             "chmod 755 /koolshare/bin/heif-converter",
@@ -206,7 +204,6 @@ class InstallUninstallContractTest(unittest.TestCase):
     def test_uninstall_removes_full_linkease_and_betterapps_leftovers_without_kaiplus(self):
         expected = [
             "killall linkease-full",
-            "killall apptunnel-client",
             "killall linkremote-agent",
             "killall linkmount_bin",
             "killall ld-musl-armhf.so.1",
@@ -215,7 +212,6 @@ class InstallUninstallContractTest(unittest.TestCase):
             "killall hostlink",
             "rm -rf /koolshare/bin/linkease-full",
             "rm -rf /koolshare/bin/link-ease",
-            "rm -rf /koolshare/bin/apptunnel-client",
             "rm -rf /koolshare/bin/linkremote-agent",
             "rm -rf /koolshare/bin/hostlink",
             "rm -rf /koolshare/linkease",

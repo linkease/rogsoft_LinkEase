@@ -19,7 +19,7 @@ FULL_ARTIFACT_FIELDS = ("full_artifact_url", "full_artifact_sha256")
 FULL_BINARY = "linkease-full"
 RUNTIME_BINARIES = (
     "linkease-full",
-    "apptunnel-client",
+    "link-ease",
     "linkremote-agent",
     "heif-converter",
     "hostlink",
@@ -108,8 +108,13 @@ def stage_full_artifacts(module_dir, artifact_dir):
                     raise FileNotFoundError("missing full runtime binary: %s" % src)
                 continue
             dst = bin_dir / binary
-            shutil.copy2(src, dst)
-            make_executable(dst)
+            if src.is_symlink():
+                if dst.exists() or dst.is_symlink():
+                    dst.unlink()
+                os.symlink(os.readlink(src), dst)
+            else:
+                shutil.copy2(src, dst)
+                make_executable(dst)
             if binary == FULL_BINARY:
                 compress_with_upx(dst)
 
@@ -144,7 +149,7 @@ def stage_full_artifacts(module_dir, artifact_dir):
 
 def remove_staged_full_artifact(module_dir):
     module_dir = Path(module_dir)
-    for binary in ("linkease-full", "apptunnel-client", "linkremote-agent", "heif-converter", "hostlink"):
+    for binary in ("linkease-full", "link-ease", "linkremote-agent", "heif-converter", "hostlink"):
         path = module_dir / "bin" / binary
         if path.exists():
             path.unlink()

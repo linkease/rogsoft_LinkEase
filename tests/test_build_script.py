@@ -35,10 +35,11 @@ class BuildScriptTest(unittest.TestCase):
     def make_runtime_bundle(self, root):
         artifact = root / "artifact"
         (artifact / "bin").mkdir(parents=True)
-        for name in ("linkease-full", "apptunnel-client", "linkremote-agent", "heif-converter", "hostlink"):
+        for name in ("linkease-full", "linkremote-agent", "heif-converter", "hostlink"):
             path = artifact / "bin" / name
             path.write_text("#!/bin/sh\n", encoding="utf-8")
             path.chmod(0o755)
+        (artifact / "bin" / "link-ease").symlink_to("linkease-full")
         (artifact / "linkmount_bin" / "lib").mkdir(parents=True)
         (artifact / "linkmount_bin" / "linkmount_bin").write_text("#!/bin/sh\n", encoding="utf-8")
         (artifact / "linkmount_bin" / "linkmount_bin").chmod(0o755)
@@ -70,7 +71,7 @@ class BuildScriptTest(unittest.TestCase):
             self.assertEqual(conf["module"], "linkease")
             self.assertTrue((root / "linkease.tar.gz").is_file())
             self.assertFalse((root / "linkease" / "bin" / "linkease-full").exists())
-            self.assertFalse((root / "linkease" / "bin" / "apptunnel-client").exists())
+            self.assertFalse((root / "linkease" / "bin" / "link-ease").exists())
             self.assertFalse((root / "linkease" / "bin" / "linkremote-agent").exists())
             self.assertFalse((root / "linkease" / "bin" / "hostlink").exists())
             self.assertFalse((root / "linkease" / "linkmount_bin").exists())
@@ -79,7 +80,10 @@ class BuildScriptTest(unittest.TestCase):
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
                 self.assertIn("linkease/bin/linkease-full", members)
-                self.assertIn("linkease/bin/apptunnel-client", members)
+                self.assertIn("linkease/bin/link-ease", members)
+                linkease = archive.getmember("linkease/bin/link-ease")
+                self.assertTrue(linkease.issym())
+                self.assertEqual(linkease.linkname, "linkease-full")
                 self.assertIn("linkease/bin/linkremote-agent", members)
                 self.assertIn("linkease/bin/heif-converter", members)
                 self.assertIn("linkease/bin/hostlink", members)
@@ -179,7 +183,7 @@ class BuildScriptTest(unittest.TestCase):
             with tarfile.open(root / "linkease.tar.gz", "r:gz") as archive:
                 members = archive.getnames()
                 self.assertIn("linkease/bin/linkease-full", members)
-                self.assertIn("linkease/bin/apptunnel-client", members)
+                self.assertIn("linkease/bin/link-ease", members)
                 self.assertIn("linkease/linkmount_bin/linkmount_bin", members)
                 self.assertIn("linkease/linkmount_bin/lib/libexample.so.1", members)
                 self.assertIn("linkease/scripts/mountremote-watch-root.sh", members)

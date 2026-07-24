@@ -5,7 +5,6 @@ cd /tmp
 killall link-ease > /dev/null 2>&1
 killall linkease-full > /dev/null 2>&1
 killall linkease-desktop > /dev/null 2>&1
-killall apptunnel-client > /dev/null 2>&1
 killall linkremote-agent > /dev/null 2>&1
 killall linkmount_bin > /dev/null 2>&1
 killall ld-musl-armhf.so.1 > /dev/null 2>&1
@@ -17,7 +16,6 @@ rm -rf /koolshare/init.d/*LinkEase.sh
 rm -rf /koolshare/bin/link-ease
 rm -rf /koolshare/bin/linkease-full
 rm -rf /koolshare/bin/linkease-desktop
-rm -rf /koolshare/bin/apptunnel-client
 rm -rf /koolshare/bin/linkremote-agent
 rm -rf /koolshare/bin/hostlink
 rm -rf /koolshare/bin/linkease-plugins

@@ -271,7 +271,6 @@ install_now(){
 	killall ${FULL_BIN} > /dev/null 2>&1
 	fi
 	killall linkease-desktop > /dev/null 2>&1
-	killall apptunnel-client > /dev/null 2>&1
 	killall linkremote-agent > /dev/null 2>&1
 	killall linkmount_bin > /dev/null 2>&1
 	killall ld-musl-armhf.so.1 > /dev/null 2>&1
@@ -280,7 +279,6 @@ install_now(){
 	killall hostlink > /dev/null 2>&1
 	rm -rf /koolshare/bin/link-ease >/dev/null 2>&1
 	rm -rf /koolshare/bin/linkease-desktop >/dev/null 2>&1
-	rm -rf /koolshare/bin/apptunnel-client >/dev/null 2>&1
 	rm -rf /koolshare/bin/linkremote-agent >/dev/null 2>&1
 	rm -rf /koolshare/bin/hostlink >/dev/null 2>&1
 	rm -rf ${LINKMOUNT_BIN_DIR} >/dev/null 2>&1
@@ -308,7 +306,7 @@ install_now(){
 	chmod 755 /koolshare/scripts/${module}_*.sh >/dev/null 2>&1
 	chmod 755 /koolshare/scripts/mountremote-*.sh >/dev/null 2>&1
 	chmod 755 /koolshare/bin/${FULL_BIN} >/dev/null 2>&1
-	chmod 755 /koolshare/bin/apptunnel-client >/dev/null 2>&1
+	chmod 755 /koolshare/bin/link-ease >/dev/null 2>&1
 		chmod 755 /koolshare/bin/linkremote-agent >/dev/null 2>&1
 		chmod 755 /koolshare/bin/hostlink >/dev/null 2>&1
 		chmod 755 /koolshare/bin/heif-converter >/dev/null 2>&1

@@ -139,14 +139,13 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             self.assertIn("stop_linkeaselite_runtime", block)
             self.assertLess(block.index("stop_linkeaselite_runtime"), block.index(started_binary))
 
-    def test_full_transition_starts_standard_and_full_processes(self):
+    def test_full_transition_starts_only_embedded_full_process(self):
         self.assertIn("start_standard_binary()", self.config)
         start_full = re.search(r"start_full\(\)\{([\s\S]*?)\n\}", self.config)
         self.assertIsNotNone(start_full)
         block = start_full.group(1)
-        self.assertIn("start_standard_binary", block)
         self.assertIn("start_full_binary", block)
-        self.assertLess(block.index("start_standard_binary"), block.index("start_full_binary"))
+        self.assertNotIn("start_standard_binary", block)
 
     def assert_no_forbidden_kaiplus_runtime_targets(self, script):
         commands = r"(?:start-stop-daemon|killall|kill|mv|install|cp|rm|mkdir|chmod|find)"
