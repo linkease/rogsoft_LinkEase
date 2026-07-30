@@ -79,6 +79,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             'LINKEASE_DATA_ROOT=${LINKEASE_DATA_DISK}/.linkease_data',
             'LINKEASE_RECYCLE_ROOT=${LINKEASE_DATA_DISK}/.linkease_recycle',
             'LINKEASE_DATA_ROOT=${APP_DIR}/data/bootstrap',
+            'LINKEASE_APPTUNNEL_LEGACY_ROOT_DIR=${USER_DATA_PATH}',
             'MOUNTREMOTE_SOCKET_DIR=/tmp/linkease-mr-sockets',
             "persist_migrated_betterapps_disk",
         ]

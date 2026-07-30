@@ -28,6 +28,9 @@ export LINKEASE_EDITION=nas-full
 export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${APPTUNNEL_INTERNAL_PORT}
 export LINKEASE_APPTUNNEL_INTERNAL_ADDR=127.0.0.1:${APPTUNNEL_INTERNAL_PORT}
 export LINKEASE_APPTUNNEL_LEGACY_ADDR=0.0.0.0:${STANDARD_PORT}
+# Keep the old ASUS/OpenWrt preconfig authority visible to the embedded
+# apptunnel runtime. Without this, a restart falls back to the machine ID.
+export LINKEASE_CONFIG=/jffs/.koolshare/bin
 export KAIPLUS_ENABLED=0
 KAIPLUS_PROXY_TARGET=""
 
@@ -244,6 +247,7 @@ configure_data_paths(){
 	export USER_DATA_PATH=${LINKEASE_DATA_ROOT}/users/admin
 	export SYSTEM_DATA_PATH=${LINKEASE_DATA_ROOT}/system
 	export TEMP_PATH=${LINKEASE_DATA_ROOT}/tmp
+	export LINKEASE_APPTUNNEL_LEGACY_ROOT_DIR=${USER_DATA_PATH}
 	export LINKEASE_APPTUNNEL_DATA_DIR=${LINKEASE_DATA_ROOT}/apptunnel
 	export LINKEASE_REMOTE_MOUNT_ROOT=${LINKEASE_DATA_ROOT}/.linkease_mounts
 	export MOUNTREMOTE_ALLOWED_MOUNT_PREFIX=${LINKEASE_REMOTE_MOUNT_ROOT}
