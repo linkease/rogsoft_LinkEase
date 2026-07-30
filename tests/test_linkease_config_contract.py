@@ -44,10 +44,14 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "export SERVER_PORT=${DESKTOP_PORT}",
             "export SERVER_BASE_PATH=/apps/",
             "export LINKEASE_EDITION=nas-full",
+            "export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${STANDARD_PORT}",
+            "export LINKEASE_APPTUNNEL_INTERNAL_ADDR=127.0.0.1:${STANDARD_PORT}",
             "export KAIPLUS_ENABLED=0",
         ]
         for item in expected:
             self.assertIn(item, self.config)
+        self.assertNotIn("APPTUNNEL_INTERNAL_PORT=19810", self.config)
+        self.assertNotIn("127.0.0.1:${APPTUNNEL_INTERNAL_PORT}", self.config)
         self.assertNotIn(joined("export KAIPLUS_ENABLED=", "1"), self.config)
         self.assertNotIn("export REASONIX_CREDENTIALS_STORE=file", self.config)
 
@@ -328,6 +332,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "echo $child > $FULL_PID_FILE",
             "wait $child",
             "rc=$?",
+            "mkdir -p /tmp/linkease-diag",
             'echo "==== linkease-full exit $(date) rc=$rc ===="',
             'echo "$(date) rc=$rc pid=$child" >"$exit_file"',
         ]

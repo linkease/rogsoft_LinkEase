@@ -8,7 +8,6 @@ FULL_BIN=/koolshare/bin/linkease-full
 FULL_PID_FILE=/var/run/linkease-full.pid
 FULL_MIN_MEM_KB=900000
 STANDARD_PORT=8897
-APPTUNNEL_INTERNAL_PORT=19810
 DESKTOP_PORT=19290
 APP_DIR=/koolshare/linkease
 APPS_PORT_FORWARD="http://127.0.0.1:${DESKTOP_PORT}"
@@ -25,8 +24,8 @@ export SERVER_PORT=${DESKTOP_PORT}
 export SERVER_MODE=release
 export SERVER_BASE_PATH=/apps/
 export LINKEASE_EDITION=nas-full
-export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${APPTUNNEL_INTERNAL_PORT}
-export LINKEASE_APPTUNNEL_INTERNAL_ADDR=127.0.0.1:${APPTUNNEL_INTERNAL_PORT}
+export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${STANDARD_PORT}
+export LINKEASE_APPTUNNEL_INTERNAL_ADDR=127.0.0.1:${STANDARD_PORT}
 export LINKEASE_APPTUNNEL_LEGACY_ADDR=0.0.0.0:${STANDARD_PORT}
 # Keep the old ASUS/OpenWrt preconfig authority visible to the embedded
 # apptunnel runtime. Without this, a restart falls back to the machine ID.
@@ -405,6 +404,7 @@ start_full_binary(){
 		echo $child > $FULL_PID_FILE
 		wait $child
 		rc=$?
+		mkdir -p /tmp/linkease-diag >/dev/null 2>&1
 		echo "==== linkease-full exit $(date) rc=$rc ====" >>"$log_file" 2>&1
 		echo "$(date) rc=$rc pid=$child" >"$exit_file"
 	) &
