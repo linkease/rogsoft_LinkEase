@@ -84,6 +84,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             'LINKEASE_RECYCLE_ROOT=${LINKEASE_DATA_DISK}/.linkease_recycle',
             'LINKEASE_DATA_ROOT=${APP_DIR}/data/bootstrap',
             'LINKEASE_APPTUNNEL_LEGACY_ROOT_DIR=${USER_DATA_PATH}',
+            'LINKEASE_APPTUNNEL_CONFIG_DIR=${LINKEASE_APPTUNNEL_DATA_DIR}',
             'MOUNTREMOTE_SOCKET_DIR=/tmp/linkease-mr-sockets',
             "persist_migrated_betterapps_disk",
         ]
@@ -326,6 +327,7 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             'echo "==== linkease-full start $(date) ===="',
             'echo "FULL_BIN=$FULL_BIN"',
             'echo "GOMEMLIMIT=$GOMEMLIMIT GOGC=$GOGC"',
+            'echo "LINKEASE_APPTUNNEL_CONFIG_DIR=$LINKEASE_APPTUNNEL_CONFIG_DIR"',
             'set >"$env_file"',
             '$FULL_BIN >>"$log_file" 2>&1 &',
             "child=$!",
