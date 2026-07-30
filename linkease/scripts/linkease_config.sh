@@ -385,7 +385,29 @@ ensure_apps_forward(){
 }
 
 start_full_binary(){
-	start-stop-daemon -S -q -b -m -p $FULL_PID_FILE -x $FULL_BIN
+	log_dir=${LINKEASE_DATA_ROOT:-/tmp}/logs
+	mkdir -p "$log_dir" /tmp/linkease-diag >/dev/null 2>&1
+	log_file=$log_dir/linkease-full.log
+	exit_file=/tmp/linkease-diag/linkease-full.exit
+	env_file=/tmp/linkease-diag/linkease-full.env
+	{
+		echo "==== linkease-full start $(date) ===="
+		echo "FULL_BIN=$FULL_BIN"
+		echo "GOMEMLIMIT=$GOMEMLIMIT GOGC=$GOGC"
+		echo "LINKEASE_DATA_ROOT=$LINKEASE_DATA_ROOT"
+		echo "LINKEASE_APPTUNNEL_LEGACY_ADDR=$LINKEASE_APPTUNNEL_LEGACY_ADDR"
+		echo "LINKEASE_APPTUNNEL_INTERNAL_ADDR=$LINKEASE_APPTUNNEL_INTERNAL_ADDR"
+	} >>"$log_file" 2>&1
+	(
+		set >"$env_file" 2>/dev/null
+		$FULL_BIN >>"$log_file" 2>&1 &
+		child=$!
+		echo $child > $FULL_PID_FILE
+		wait $child
+		rc=$?
+		echo "==== linkease-full exit $(date) rc=$rc ====" >>"$log_file" 2>&1
+		echo "$(date) rc=$rc pid=$child" >"$exit_file"
+	) &
 }
 
 start_standard_binary(){

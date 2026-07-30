@@ -309,6 +309,32 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertNotIn("start_lite()", self.config)
         self.assertNotIn("lite)", self.config)
 
+    def test_full_start_records_runtime_logs_and_exit_code(self):
+        block = re.search(r"start_full_binary\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(block)
+        body = block.group(1)
+        expected = [
+            'log_dir=${LINKEASE_DATA_ROOT:-/tmp}/logs',
+            "mkdir -p \"$log_dir\" /tmp/linkease-diag",
+            "log_file=$log_dir/linkease-full.log",
+            "exit_file=/tmp/linkease-diag/linkease-full.exit",
+            "env_file=/tmp/linkease-diag/linkease-full.env",
+            'echo "==== linkease-full start $(date) ===="',
+            'echo "FULL_BIN=$FULL_BIN"',
+            'echo "GOMEMLIMIT=$GOMEMLIMIT GOGC=$GOGC"',
+            'set >"$env_file"',
+            '$FULL_BIN >>"$log_file" 2>&1 &',
+            "child=$!",
+            "echo $child > $FULL_PID_FILE",
+            "wait $child",
+            "rc=$?",
+            'echo "==== linkease-full exit $(date) rc=$rc ===="',
+            'echo "$(date) rc=$rc pid=$child" >"$exit_file"',
+        ]
+        for item in expected:
+            self.assertIn(item, body)
+        self.assertNotIn("start-stop-daemon -S -q -b -m -p $FULL_PID_FILE -x $FULL_BIN", body)
+
     def test_full_detects_httpd_proxy_state_and_standard_does_not_start_full(self):
         expected = [
             "ensure_apps_forward()",
