@@ -15,6 +15,7 @@ rm -rf /koolshare/init.d/*linkease.sh
 rm -rf /koolshare/init.d/*LinkEase.sh
 rm -rf /koolshare/bin/link-ease
 rm -rf /koolshare/bin/linkease-full
+rm -rf /koolshare/bin/linkease-config.sh
 rm -rf /koolshare/bin/linkease-desktop
 rm -rf /koolshare/bin/linkremote-agent
 rm -rf /koolshare/bin/hostlink

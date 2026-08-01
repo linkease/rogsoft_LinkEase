@@ -38,42 +38,66 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             r"(?m)^\s*(?:export\s+)?KAIPLUS_(?:BIN|STATIC_DIR|DEFAULTS_DIR|HOME|ADDR|BASE_PATH)(?:\s*=|\s*$)",
         )
 
-    def test_full_runtime_exports_apps_and_disables_embedded_kaiplus(self):
-        expected = [
-            "export SERVER_HOST=0.0.0.0",
-            "export SERVER_PORT=${DESKTOP_PORT}",
-            "export SERVER_BASE_PATH=/apps/",
-            "export LINKEASE_EDITION=nas-full",
-            "export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${STANDARD_PORT}",
-            "export LINKEASE_APPTUNNEL_INTERNAL_ADDR=127.0.0.1:${STANDARD_PORT}",
-            "export KAIPLUS_ENABLED=0",
+    def test_full_runtime_uses_internal_defaults_instead_of_business_env_exports(self):
+        forbidden_exports = [
+            "export SERVER_HOST=",
+            "export SERVER_PORT=",
+            "export SERVER_MODE=",
+            "export SERVER_BASE_PATH=",
+            "export LINKEASE_EDITION=",
+            "export LINKEASE_APPTUNNEL_BASE_URL=",
+            "export LINKEASE_APPTUNNEL_INTERNAL_ADDR=",
+            "export LINKEASE_APPTUNNEL_LEGACY_ADDR=",
+            "export LINKEASE_APPTUNNEL_CONFIG_DIR=",
+            "export LINKEASE_APPTUNNEL_DATA_DIR=",
+            "export LINKEASE_CONFIG=",
+            "export KAIPLUS_ENABLED=",
         ]
-        for item in expected:
-            self.assertIn(item, self.config)
+        for item in forbidden_exports:
+            self.assertNotIn(item, self.config)
         self.assertNotIn("APPTUNNEL_INTERNAL_PORT=19810", self.config)
         self.assertNotIn("127.0.0.1:${APPTUNNEL_INTERNAL_PORT}", self.config)
         self.assertNotIn(joined("export KAIPLUS_ENABLED=", "1"), self.config)
         self.assertNotIn("export REASONIX_CREDENTIALS_STORE=file", self.config)
 
-    def test_linkease_detects_independent_kaiplus_for_proxy_only(self):
-        expected = [
+    def test_linkease_does_not_export_kaiplus_proxy_state(self):
+        forbidden = [
             "resolve_kaiplus_proxy_target()",
-            'KAIPLUS_PROXY_TARGET=""',
-            "[ -x /koolshare/scripts/kaiplus_config.sh ] || return 0",
-            "[ -x /koolshare/bin/kaiplus_bin ] || return 0",
-            'kaiplus_port="$(dbus get kaiplus_port 2>/dev/null)"',
-            "kaiplus_port=8189",
-            'KAIPLUS_PROXY_TARGET="http://127.0.0.1:${kaiplus_port}"',
-            "resolve_kaiplus_proxy_target",
-            'export KAIPLUS_PROXY_TARGET="${KAIPLUS_PROXY_TARGET}"',
+            "KAIPLUS_PROXY_TARGET=",
+            "export KAIPLUS_PROXY_TARGET=",
         ]
-        for item in expected:
-            self.assertIn(item, self.config)
+        for item in forbidden:
+            self.assertNotIn(item, self.config)
 
     def test_apptunnel_preserves_legacy_entry_and_local_api_socket(self):
         self.assertNotIn("APPTUNNEL_PORT=8897", self.config)
         self.assertNotIn("LINKEASE_LOCAL_API=/var/run/linkease.sock", self.config)
         self.assertNotIn("start_apptunnel", self.config)
+
+    def test_config_script_handles_preconfig_protocol_before_service_control(self):
+        expected = [
+            "PRECONFIG_PRIMARY=/jffs/.koolshare/bin/preconfig.data",
+            "PRECONFIG_COMPAT=/koolshare/bin/preconfig.data",
+            "preconfig_load()",
+            "preconfig_save()",
+            "preconfig_local_save()",
+            "load)",
+            "save)",
+            "local_load)",
+            "local_save)",
+            "echo \"$USER_DATA_PATH\"",
+            "recursive kill/start loop",
+        ]
+        for item in expected:
+            self.assertIn(item, self.config)
+
+        protocol_index = self.config.index("# linkease-full embeds apptunnel/clientruntime")
+        service_index = self.config.index("case $ACTION in")
+        self.assertLess(protocol_index, service_index)
+        protocol_end = self.config.index("\nesac", protocol_index)
+        protocol_block = self.config[protocol_index:protocol_end]
+        self.assertNotIn("kill_ee", protocol_block)
+        self.assertNotIn("start_active_edition", protocol_block)
 
     def test_data_path_resolution_prefers_linkease_then_betterapps_then_bootstrap(self):
         markers = [
@@ -83,9 +107,10 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             'LINKEASE_DATA_ROOT=${LINKEASE_DATA_DISK}/.linkease_data',
             'LINKEASE_RECYCLE_ROOT=${LINKEASE_DATA_DISK}/.linkease_recycle',
             'LINKEASE_DATA_ROOT=${APP_DIR}/data/bootstrap',
-            'LINKEASE_APPTUNNEL_LEGACY_ROOT_DIR=${USER_DATA_PATH}',
-            'LINKEASE_APPTUNNEL_CONFIG_DIR=${LINKEASE_APPTUNNEL_DATA_DIR}',
-            'MOUNTREMOTE_SOCKET_DIR=/tmp/linkease-mr-sockets',
+            'USER_DATA_PATH=${LINKEASE_DATA_ROOT}/users/admin',
+            'SYSTEM_DATA_PATH=${LINKEASE_DATA_ROOT}/system',
+            'TEMP_PATH=${LINKEASE_DATA_ROOT}/tmp',
+            'LINKEASE_REMOTE_MOUNT_ROOT=${LINKEASE_DATA_ROOT}/.linkease_mounts',
             "persist_migrated_betterapps_disk",
         ]
         for marker in markers:
@@ -97,18 +122,20 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         self.assertLess(linkease_index, betterapps_index)
         self.assertLess(betterapps_index, bootstrap_index)
 
-    def test_apptunnel_mountremote_real_runner_is_configured_for_asuswrt(self):
+    def test_apptunnel_mountremote_real_runner_is_inferred_by_runtime(self):
         expected = [
-            "export MOUNTREMOTE_MODE=real",
-            "export MOUNTREMOTE_LINKREMOTE_AGENT_BINARY=${LINKREMOTE_AGENT_BIN}",
-            "export MOUNTREMOTE_SMBD_BINARY=${LINKMOUNT_BIN}",
-            "export MOUNTREMOTE_WORK_DIR=${LINKEASE_DATA_ROOT}/mountremote-runtime",
-            "export MOUNTREMOTE_SOCKET_DIR=/tmp/linkease-mr-sockets",
-            "export MOUNTREMOTE_SAMBA_DIR=${MOUNTREMOTE_SOCKET_DIR}/samba",
+            "LINKREMOTE_AGENT_BIN=/koolshare/bin/linkremote-agent",
+            "LINKMOUNT_BIN_DIR=${APP_DIR}/linkmount_bin",
+            "LINKMOUNT_BIN=${LINKMOUNT_BIN_DIR}/linkmount_bin",
+            "MOUNTREMOTE_CTL=/koolshare/scripts/mountremote-ctl.sh",
             "modprobe cifs >/dev/null 2>&1 || true",
         ]
         for item in expected:
             self.assertIn(item, self.config)
+        self.assertNotIn("export MOUNTREMOTE_MODE=", self.config)
+        self.assertNotIn("export MOUNTREMOTE_LINKREMOTE_AGENT_BINARY=", self.config)
+        self.assertNotIn("export MOUNTREMOTE_SMBD_BINARY=", self.config)
+        self.assertNotIn("export MOUNTREMOTE_SOCKET_DIR=", self.config)
         self.assertNotIn("export MOUNTREMOTE_SYSTEM_COMMAND_HELPER", self.config)
 
     def test_process_lifecycle_manages_only_desktop_and_apptunnel(self):
@@ -274,29 +301,27 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         positions = [self.config.index(item) for item in startup_order]
         self.assertEqual(positions, sorted(positions))
 
-    def test_runtime_sets_go_memory_limits_before_starting_binaries(self):
+    def test_runtime_does_not_export_go_runtime_limits_from_script(self):
         expected = [
-            "default_standard_gomemlimit()",
-            "default_full_gomemlimit()",
-            "apply_go_memory_limits()",
-            "export GOMEMLIMIT=",
-            "export GOGC=",
             "ulimit -v unlimited",
-            "linkease_gomemlimit",
-            "linkease_full_gomemlimit",
-            "256MiB",
-            "384MiB",
+            "full_memory_ready()",
+            "FULL_MIN_MEM_KB=900000",
         ]
         for item in expected:
             self.assertIn(item, self.config)
+        self.assertNotIn("default_standard_gomemlimit()", self.config)
+        self.assertNotIn("default_full_gomemlimit()", self.config)
+        self.assertNotIn("apply_go_memory_limits()", self.config)
+        self.assertNotIn("linkease_effective_gomemlimit", self.config)
+        self.assertNotIn("linkease_effective_gogc", self.config)
+        self.assertNotIn("export GOMEMLIMIT=", self.config)
+        self.assertNotIn("export GOGC=", self.config)
 
         for starter in ("start_standard", "start_full"):
             block = re.search(r"%s\(\)\{([\s\S]*?)\n\}" % starter, self.config)
             self.assertIsNotNone(block)
             launch_call = "start_standard_binary" if starter == "start_standard" else "start_full_binary"
-            self.assertIn("apply_go_memory_limits", block.group(1))
             self.assertIn("ulimit -v unlimited", block.group(1))
-            self.assertLess(block.group(1).index("apply_go_memory_limits"), block.group(1).index(launch_call))
             self.assertLess(block.group(1).index("ulimit -v unlimited"), block.group(1).index(launch_call))
 
     def test_runtime_has_separate_standard_full_starters(self):
@@ -326,9 +351,8 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "env_file=/tmp/linkease-diag/linkease-full.env",
             'echo "==== linkease-full start $(date) ===="',
             'echo "FULL_BIN=$FULL_BIN"',
-            'echo "GOMEMLIMIT=$GOMEMLIMIT GOGC=$GOGC"',
-            'echo "LINKEASE_APPTUNNEL_CONFIG_DIR=$LINKEASE_APPTUNNEL_CONFIG_DIR"',
-            'set >"$env_file"',
+            'echo "LINKEASE_DATA_ROOT=$LINKEASE_DATA_ROOT"',
+            'env >"$env_file"',
             '$FULL_BIN >>"$log_file" 2>&1 &',
             "child=$!",
             "echo $child > $FULL_PID_FILE",

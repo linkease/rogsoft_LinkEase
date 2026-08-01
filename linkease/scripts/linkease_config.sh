@@ -18,20 +18,8 @@ LINKMOUNT_BIN_DIR=${APP_DIR}/linkmount_bin
 LINKMOUNT_BIN=${LINKMOUNT_BIN_DIR}/linkmount_bin
 MOUNTREMOTE_CTL=/koolshare/scripts/mountremote-ctl.sh
 LINKEASE_ACTIVE_EDITION=
-
-export SERVER_HOST=0.0.0.0
-export SERVER_PORT=${DESKTOP_PORT}
-export SERVER_MODE=release
-export SERVER_BASE_PATH=/apps/
-export LINKEASE_EDITION=nas-full
-export LINKEASE_APPTUNNEL_BASE_URL=http://127.0.0.1:${STANDARD_PORT}
-export LINKEASE_APPTUNNEL_INTERNAL_ADDR=127.0.0.1:${STANDARD_PORT}
-export LINKEASE_APPTUNNEL_LEGACY_ADDR=0.0.0.0:${STANDARD_PORT}
-# Keep the old ASUS/OpenWrt preconfig authority visible to the embedded
-# apptunnel runtime. Without this, a restart falls back to the machine ID.
-export LINKEASE_CONFIG=/jffs/.koolshare/bin
-export KAIPLUS_ENABLED=0
-KAIPLUS_PROXY_TARGET=""
+PRECONFIG_PRIMARY=/jffs/.koolshare/bin/preconfig.data
+PRECONFIG_COMPAT=/koolshare/bin/preconfig.data
 
 read_persisted_data_disk(){
 	persisted_config=${APP_DIR}/data/bootstrap/system/data-root.json
@@ -142,43 +130,6 @@ full_memory_ready(){
 	[ -n "$mem_kb" ] && [ "$mem_kb" -ge "$FULL_MIN_MEM_KB" ] 2>/dev/null
 }
 
-default_standard_gomemlimit(){
-	local mem_kb
-	mem_kb="$(mem_total_kb)"
-	case "$mem_kb" in
-		''|*[!0-9]*) echo 128MiB; return 0 ;;
-	esac
-	if [ "$mem_kb" -le 524288 ] 2>/dev/null; then
-		echo 128MiB
-	elif [ "$mem_kb" -le 1048576 ] 2>/dev/null; then
-		echo 192MiB
-	else
-		echo 384MiB
-	fi
-}
-
-default_full_gomemlimit(){
-	local mem_kb
-	mem_kb="$(mem_total_kb)"
-	case "$mem_kb" in
-		''|*[!0-9]*) echo 256MiB; return 0 ;;
-	esac
-	if [ "$mem_kb" -le 1048576 ] 2>/dev/null; then
-		echo 256MiB
-	else
-		echo 384MiB
-	fi
-}
-
-apply_go_memory_limits(){
-	if [ "$LINKEASE_ACTIVE_EDITION" = "full" ]; then
-		export GOMEMLIMIT="${linkease_full_gomemlimit:-$(default_full_gomemlimit)}"
-	else
-		export GOMEMLIMIT="${linkease_gomemlimit:-$(default_standard_gomemlimit)}"
-	fi
-	export GOGC="${linkease_gogc:-50}"
-}
-
 detect_full_runtime_support(){
 	local ARCH
 	ARCH=$(uname -m)
@@ -232,62 +183,81 @@ configure_data_paths(){
 	persist_migrated_betterapps_disk
 
 	if [ -n "$resolved_data_disk" ]; then
-		export LINKEASE_BOOTSTRAP_FALLBACK=0
-		export LINKEASE_DATA_DISK="$resolved_data_disk"
-		export LINKEASE_DATA_ROOT=${LINKEASE_DATA_DISK}/.linkease_data
-		export LINKEASE_RECYCLE_ROOT=${LINKEASE_DATA_DISK}/.linkease_recycle
+		LINKEASE_BOOTSTRAP_FALLBACK=0
+		LINKEASE_DATA_DISK="$resolved_data_disk"
+		LINKEASE_DATA_ROOT=${LINKEASE_DATA_DISK}/.linkease_data
+		LINKEASE_RECYCLE_ROOT=${LINKEASE_DATA_DISK}/.linkease_recycle
 	else
-		export LINKEASE_BOOTSTRAP_FALLBACK=1
-		export LINKEASE_DATA_DISK=
-		export LINKEASE_DATA_ROOT=${APP_DIR}/data/bootstrap
-		export LINKEASE_RECYCLE_ROOT=
+		LINKEASE_BOOTSTRAP_FALLBACK=1
+		LINKEASE_DATA_DISK=
+		LINKEASE_DATA_ROOT=${APP_DIR}/data/bootstrap
+		LINKEASE_RECYCLE_ROOT=
 	fi
 
-	export USER_DATA_PATH=${LINKEASE_DATA_ROOT}/users/admin
-	export SYSTEM_DATA_PATH=${LINKEASE_DATA_ROOT}/system
-	export TEMP_PATH=${LINKEASE_DATA_ROOT}/tmp
-	export LINKEASE_APPTUNNEL_LEGACY_ROOT_DIR=${USER_DATA_PATH}
-	export LINKEASE_APPTUNNEL_DATA_DIR=${LINKEASE_DATA_ROOT}/apptunnel
-	export LINKEASE_APPTUNNEL_CONFIG_DIR=${LINKEASE_APPTUNNEL_DATA_DIR}
-	export LINKEASE_REMOTE_MOUNT_ROOT=${LINKEASE_DATA_ROOT}/.linkease_mounts
-	export MOUNTREMOTE_ALLOWED_MOUNT_PREFIX=${LINKEASE_REMOTE_MOUNT_ROOT}
-	export MOUNTREMOTE_MODE=real
-	export MOUNTREMOTE_LINKREMOTE_AGENT_BINARY=${LINKREMOTE_AGENT_BIN}
-	export MOUNTREMOTE_SMBD_BINARY=${LINKMOUNT_BIN}
-	export MOUNTREMOTE_ROOT_WATCH_DIR=${APP_DIR}/mountremote-root
-	export MOUNTREMOTE_WORK_DIR=${LINKEASE_DATA_ROOT}/mountremote-runtime
-	export MOUNTREMOTE_SOCKET_DIR=/tmp/linkease-mr-sockets
-	export MOUNTREMOTE_SAMBA_DIR=${MOUNTREMOTE_SOCKET_DIR}/samba
+	USER_DATA_PATH=${LINKEASE_DATA_ROOT}/users/admin
+	SYSTEM_DATA_PATH=${LINKEASE_DATA_ROOT}/system
+	TEMP_PATH=${LINKEASE_DATA_ROOT}/tmp
+	LINKEASE_REMOTE_MOUNT_ROOT=${LINKEASE_DATA_ROOT}/.linkease_mounts
+}
+
+preconfig_load(){
+	if [ -f "$PRECONFIG_PRIMARY" ]; then
+		cat "$PRECONFIG_PRIMARY"
+	elif [ -f "$PRECONFIG_COMPAT" ]; then
+		cat "$PRECONFIG_COMPAT"
+	else
+		echo nil
+	fi
+}
+
+preconfig_save(){
+	mkdir -p "$(dirname "$PRECONFIG_PRIMARY")" "$(dirname "$PRECONFIG_COMPAT")" >/dev/null 2>&1
+	if [ -n "$1" ]; then
+		printf '%s\n' "$1" > "$PRECONFIG_PRIMARY"
+	else
+		printf 'nil\n' > "$PRECONFIG_PRIMARY"
+	fi
+	cp -f "$PRECONFIG_PRIMARY" "$PRECONFIG_COMPAT" >/dev/null 2>&1
+}
+
+preconfig_local_save(){
+	case "$1" in
+	*/.linkease_data/users/admin)
+		saved_data_disk="${1%/.linkease_data/users/admin}"
+		if [ -n "$saved_data_disk" ]; then
+			dbus set linkease_data_disk="$saved_data_disk" >/dev/null 2>&1
+			dbus set linkease_data_root="${saved_data_disk}/.linkease_data" >/dev/null 2>&1
+		fi
+		;;
+	esac
 }
 
 detect_full_runtime_support
 persist_active_edition
 configure_data_paths
 
-normalize_kaiplus_port(){
-	kaiplus_port=8189
-	case "$1" in
-		''|*[!0-9]*) echo "$kaiplus_port"; return 0 ;;
-	esac
-	if [ "$1" -ge 1 ] 2>/dev/null && [ "$1" -le 65535 ] 2>/dev/null; then
-		echo "$1"
-	else
-		echo "$kaiplus_port"
-	fi
-}
-
-resolve_kaiplus_proxy_target(){
-	KAIPLUS_PROXY_TARGET=""
-	[ -x /koolshare/scripts/kaiplus_config.sh ] || return 0
-	[ -x /koolshare/bin/kaiplus_bin ] || return 0
-
-	kaiplus_port="$(dbus get kaiplus_port 2>/dev/null)"
-	kaiplus_port="$(normalize_kaiplus_port "$kaiplus_port")"
-	KAIPLUS_PROXY_TARGET="http://127.0.0.1:${kaiplus_port}"
-	export KAIPLUS_PROXY_TARGET="${KAIPLUS_PROXY_TARGET}"
-}
-
-resolve_kaiplus_proxy_target
+# linkease-full embeds apptunnel/clientruntime. That runtime discovers this
+# script as the old linkease-config.sh authority and calls load/save/local_load.
+# These commands must be pure config operations; starting services here causes a
+# recursive kill/start loop because load runs while linkease-full is booting.
+case "$1" in
+	load)
+		preconfig_load
+		exit 0
+		;;
+	save)
+		preconfig_save "$2"
+		exit 0
+		;;
+	local_load)
+		echo "$USER_DATA_PATH"
+		exit 0
+		;;
+	local_save)
+		preconfig_local_save "$2"
+		exit 0
+		;;
+esac
 
 ensure_dirs(){
 	if [ "$LINKEASE_BOOTSTRAP_FALLBACK" = "1" ]; then
@@ -393,14 +363,10 @@ start_full_binary(){
 	{
 		echo "==== linkease-full start $(date) ===="
 		echo "FULL_BIN=$FULL_BIN"
-		echo "GOMEMLIMIT=$GOMEMLIMIT GOGC=$GOGC"
 		echo "LINKEASE_DATA_ROOT=$LINKEASE_DATA_ROOT"
-		echo "LINKEASE_APPTUNNEL_LEGACY_ADDR=$LINKEASE_APPTUNNEL_LEGACY_ADDR"
-		echo "LINKEASE_APPTUNNEL_INTERNAL_ADDR=$LINKEASE_APPTUNNEL_INTERNAL_ADDR"
-		echo "LINKEASE_APPTUNNEL_CONFIG_DIR=$LINKEASE_APPTUNNEL_CONFIG_DIR"
 	} >>"$log_file" 2>&1
 	(
-		set >"$env_file" 2>/dev/null
+		env >"$env_file" 2>/dev/null
 		$FULL_BIN >>"$log_file" 2>&1 &
 		child=$!
 		echo $child > $FULL_PID_FILE
@@ -430,7 +396,6 @@ start_standard(){
 	ensure_dirs || return 1
 	kill_ee
 	stop_linkeaselite_runtime
-	apply_go_memory_limits
 	ulimit -v unlimited 2>/dev/null || true
 	start_standard_binary
 	[ ! -L "/koolshare/init.d/S99linkease.sh" ] && ln -sf /koolshare/scripts/linkease_config.sh /koolshare/init.d/S99linkease.sh
@@ -442,7 +407,6 @@ start_full(){
 	ensure_apps_forward || return 1
 	kill_ee
 	stop_linkeaselite_runtime
-	apply_go_memory_limits
 	ulimit -v unlimited 2>/dev/null || true
 	start_full_binary
 	detect_apps_proxy_state

@@ -278,6 +278,7 @@ install_now(){
 	killall ld-musl-x86_64.so.1 > /dev/null 2>&1
 	killall hostlink > /dev/null 2>&1
 	rm -rf /koolshare/bin/link-ease >/dev/null 2>&1
+	rm -rf /koolshare/bin/linkease-config.sh >/dev/null 2>&1
 	rm -rf /koolshare/bin/linkease-desktop >/dev/null 2>&1
 	rm -rf /koolshare/bin/linkremote-agent >/dev/null 2>&1
 	rm -rf /koolshare/bin/hostlink >/dev/null 2>&1
@@ -305,6 +306,7 @@ install_now(){
 	# Permissions
 	chmod 755 /koolshare/scripts/${module}_*.sh >/dev/null 2>&1
 	chmod 755 /koolshare/scripts/mountremote-*.sh >/dev/null 2>&1
+	ln -sf /koolshare/scripts/${module}_config.sh /koolshare/bin/linkease-config.sh >/dev/null 2>&1
 	chmod 755 /koolshare/bin/${FULL_BIN} >/dev/null 2>&1
 	chmod 755 /koolshare/bin/link-ease >/dev/null 2>&1
 		chmod 755 /koolshare/bin/linkremote-agent >/dev/null 2>&1

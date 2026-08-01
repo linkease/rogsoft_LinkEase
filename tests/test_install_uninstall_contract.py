@@ -135,6 +135,7 @@ class InstallUninstallContractTest(unittest.TestCase):
             "killall ld-musl-x86_64.so.1",
             "killall hostlink",
             "rm -rf /koolshare/bin/link-ease",
+            "rm -rf /koolshare/bin/linkease-config.sh",
             "rm -rf /koolshare/bin/linkease-desktop",
         ]
         for item in expected:
@@ -177,6 +178,7 @@ class InstallUninstallContractTest(unittest.TestCase):
             "cp -rf /tmp/${module}/runtime ${APP_DIR}/",
             "chmod 755 /koolshare/bin/${FULL_BIN}",
             "chmod 755 /koolshare/bin/link-ease",
+            "ln -sf /koolshare/scripts/${module}_config.sh /koolshare/bin/linkease-config.sh",
             "chmod 755 /koolshare/bin/linkremote-agent",
             "chmod 755 /koolshare/bin/hostlink",
             "chmod 755 /koolshare/bin/heif-converter",
@@ -211,6 +213,7 @@ class InstallUninstallContractTest(unittest.TestCase):
             "killall ld-musl-x86_64.so.1",
             "killall hostlink",
             "rm -rf /koolshare/bin/linkease-full",
+            "rm -rf /koolshare/bin/linkease-config.sh",
             "rm -rf /koolshare/bin/link-ease",
             "rm -rf /koolshare/bin/linkremote-agent",
             "rm -rf /koolshare/bin/hostlink",
