@@ -213,15 +213,9 @@ preconfig_load(){
 		return 0
 	elif preconfig_read_file "$PRECONFIG_COMPAT"; then
 		return 0
-	elif [ -n "$LINKEASE_DATA_ROOT" ] && preconfig_read_file "$LINKEASE_DATA_ROOT/apptunnel/preconfig.data"; then
-		return 0
 	else
 		echo nil
 	fi
-}
-
-preconfig_legacy_data_path(){
-	[ -n "$LINKEASE_DATA_ROOT" ] && printf '%s\n' "$LINKEASE_DATA_ROOT/apptunnel/preconfig.data"
 }
 
 sync_preconfig_for_binaries(){
@@ -230,11 +224,6 @@ sync_preconfig_for_binaries(){
 	mkdir -p "$(dirname "$PRECONFIG_PRIMARY")" "$(dirname "$PRECONFIG_COMPAT")" >/dev/null 2>&1
 	printf '%s\n' "$preconfig_value" > "$PRECONFIG_PRIMARY"
 	printf '%s\n' "$preconfig_value" > "$PRECONFIG_COMPAT"
-	legacy_preconfig="$(preconfig_legacy_data_path)"
-	if [ -n "$legacy_preconfig" ]; then
-		mkdir -p "$(dirname "$legacy_preconfig")" >/dev/null 2>&1
-		printf '%s\n' "$preconfig_value" > "$legacy_preconfig"
-	fi
 }
 
 preconfig_save(){
