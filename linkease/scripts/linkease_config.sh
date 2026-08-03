@@ -231,12 +231,7 @@ preconfig_save(){
 	if [ -n "$1" ] && [ "$1" != "nil" ]; then
 		printf '%s\n' "$1" > "$PRECONFIG_PRIMARY"
 	else
-		existing_preconfig="$(preconfig_load)"
-		if [ -n "$existing_preconfig" ] && [ "$existing_preconfig" != "nil" ]; then
-			printf '%s\n' "$existing_preconfig" > "$PRECONFIG_PRIMARY"
-		else
-			printf 'nil\n' > "$PRECONFIG_PRIMARY"
-		fi
+		printf 'nil\n' > "$PRECONFIG_PRIMARY"
 	fi
 	cp -f "$PRECONFIG_PRIMARY" "$PRECONFIG_COMPAT" >/dev/null 2>&1
 }

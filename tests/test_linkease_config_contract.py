@@ -104,6 +104,10 @@ class LinkEaseConfigContractTest(unittest.TestCase):
         protocol_block = self.config[protocol_index:protocol_end]
         self.assertNotIn("kill_ee", protocol_block)
         self.assertNotIn("start_active_edition", protocol_block)
+        save_block = re.search(r"preconfig_save\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(save_block)
+        self.assertIn("printf 'nil\\n' > \"$PRECONFIG_PRIMARY\"", save_block.group(1))
+        self.assertNotIn("existing_preconfig", save_block.group(1))
 
     def test_data_path_resolution_prefers_linkease_then_betterapps_then_bootstrap(self):
         markers = [
