@@ -255,6 +255,33 @@ init_linkease_edition(){
 	dbus set ${module}_simple=0
 }
 
+verify_installed_files(){
+	if [ ! -f "/koolshare/scripts/${module}_config.sh" ];then
+		echo_date "安装失败：缺少/koolshare/scripts/${module}_config.sh！"
+		exit 1
+	fi
+	if ! grep -q "preconfig_local_load()" "/koolshare/scripts/${module}_config.sh";then
+		echo_date "安装失败：${module}_config.sh不是最新版本，缺少preconfig_local_load！"
+		exit 1
+	fi
+	if grep -q -- "--rootDir" "/koolshare/scripts/${module}_config.sh";then
+		echo_date "安装失败：${module}_config.sh仍包含旧标准版--rootDir参数！"
+		exit 1
+	fi
+	if [ ! -x "/koolshare/bin/${FULL_BIN}" ];then
+		echo_date "安装失败：缺少/koolshare/bin/${FULL_BIN}！"
+		exit 1
+	fi
+	if [ ! -x "/koolshare/bin/link-ease" ];then
+		echo_date "安装失败：缺少/koolshare/bin/link-ease！"
+		exit 1
+	fi
+	if [ ! -L "/koolshare/bin/linkease-config.sh" ];then
+		echo_date "安装失败：/koolshare/bin/linkease-config.sh不是兼容入口链接！"
+		exit 1
+	fi
+}
+
 install_now(){
 	# default value
 	local TITLE="易有云"
@@ -309,13 +336,14 @@ install_now(){
 	ln -sf /koolshare/scripts/${module}_config.sh /koolshare/bin/linkease-config.sh >/dev/null 2>&1
 	chmod 755 /koolshare/bin/${FULL_BIN} >/dev/null 2>&1
 	chmod 755 /koolshare/bin/link-ease >/dev/null 2>&1
-		chmod 755 /koolshare/bin/linkremote-agent >/dev/null 2>&1
-		chmod 755 /koolshare/bin/hostlink >/dev/null 2>&1
-		chmod 755 /koolshare/bin/heif-converter >/dev/null 2>&1
-		chmod 755 ${LINKMOUNT_BIN_DIR}/linkmount_bin >/dev/null 2>&1
-		chmod 755 ${LINKMOUNT_BIN_DIR}/lib/ld-musl-*.so.1 >/dev/null 2>&1
-		chmod 755 ${LINKMOUNT_BIN_DIR}/lib/*.so* >/dev/null 2>&1
-		chmod 755 /koolshare/bin/linkease-plugins/aria2.sh >/dev/null 2>&1
+	chmod 755 /koolshare/bin/linkremote-agent >/dev/null 2>&1
+	chmod 755 /koolshare/bin/hostlink >/dev/null 2>&1
+	chmod 755 /koolshare/bin/heif-converter >/dev/null 2>&1
+	chmod 755 ${LINKMOUNT_BIN_DIR}/linkmount_bin >/dev/null 2>&1
+	chmod 755 ${LINKMOUNT_BIN_DIR}/lib/ld-musl-*.so.1 >/dev/null 2>&1
+	chmod 755 ${LINKMOUNT_BIN_DIR}/lib/*.so* >/dev/null 2>&1
+	chmod 755 /koolshare/bin/linkease-plugins/aria2.sh >/dev/null 2>&1
+	verify_installed_files
 	# make start up script link
 	if [ ! -L "/koolshare/init.d/S99${module}.sh" -a -f "/koolshare/scripts/${module}_config.sh" ];then
 		ln -sf /koolshare/scripts/${module}_config.sh /koolshare/init.d/S99${module}.sh

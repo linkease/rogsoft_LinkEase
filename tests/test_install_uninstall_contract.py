@@ -186,6 +186,10 @@ class InstallUninstallContractTest(unittest.TestCase):
             "chmod 755 ${LINKMOUNT_BIN_DIR}/lib/ld-musl-*.so.1",
             "chmod 755 ${LINKMOUNT_BIN_DIR}/lib/*.so*",
             "chmod 755 /koolshare/scripts/mountremote-*.sh",
+            "verify_installed_files()",
+            "preconfig_local_load()",
+            'grep -q -- "--rootDir"',
+            "/koolshare/bin/linkease-config.sh",
         ]
         for item in expected:
             self.assertIn(item, self.install)
