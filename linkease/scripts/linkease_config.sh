@@ -253,6 +253,14 @@ preconfig_local_save(){
 	esac
 }
 
+preconfig_local_load(){
+	if [ "$LINKEASE_BOOTSTRAP_FALLBACK" = "1" ]; then
+		echo nil
+	else
+		echo "$USER_DATA_PATH"
+	fi
+}
+
 detect_full_runtime_support
 persist_active_edition
 configure_data_paths
@@ -271,7 +279,7 @@ case "$1" in
 		exit 0
 		;;
 	local_load)
-		echo "$USER_DATA_PATH"
+		preconfig_local_load
 		exit 0
 		;;
 	local_save)

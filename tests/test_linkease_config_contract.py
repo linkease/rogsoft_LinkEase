@@ -88,7 +88,10 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "save)",
             "local_load)",
             "local_save)",
-            "echo \"$USER_DATA_PATH\"",
+            "preconfig_local_load()",
+            'if [ "$LINKEASE_BOOTSTRAP_FALLBACK" = "1" ]; then',
+            "echo nil",
+            'echo "$USER_DATA_PATH"',
             "recursive kill/start loop",
         ]
         for item in expected:
