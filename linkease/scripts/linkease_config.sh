@@ -405,7 +405,6 @@ start_standard_binary(){
 		cd /koolshare/bin || exit 1
 		start-stop-daemon -S -q -b -x $LEGACY_BIN -- \
 			--deviceAddr ":${STANDARD_PORT}" \
-			--rootDir "$USER_DATA_PATH" \
 			--supplierCode "linkease" \
 			run
 	)
@@ -451,6 +450,18 @@ start_active_edition(){
 	esac
 }
 
+kill_process_name(){
+	process_name="$1"
+	[ -n "$process_name" ] || return 0
+	pids="$(pidof "$process_name" 2>/dev/null)"
+	if [ -n "$pids" ]; then
+		kill $pids >/dev/null 2>&1 || true
+		sleep 1
+		pids="$(pidof "$process_name" 2>/dev/null)"
+		[ -n "$pids" ] && kill -9 $pids >/dev/null 2>&1 || true
+	fi
+}
+
 kill_ee(){
 	killall link-ease >/dev/null 2>&1
 	killall linkease-full >/dev/null 2>&1
@@ -461,6 +472,8 @@ kill_ee(){
 	killall ld-musl-aarch64.so.1 >/dev/null 2>&1
 	killall ld-musl-x86_64.so.1 >/dev/null 2>&1
 	killall hostlink >/dev/null 2>&1
+	kill_process_name link-ease
+	kill_process_name linkease-full
 	ps w | grep '/koolshare/bin/link-ease' | grep -v grep | while read pid rest; do
 		kill "$pid" >/dev/null 2>&1
 	done
