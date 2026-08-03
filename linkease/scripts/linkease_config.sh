@@ -200,22 +200,54 @@ configure_data_paths(){
 	LINKEASE_REMOTE_MOUNT_ROOT=${LINKEASE_DATA_ROOT}/.linkease_mounts
 }
 
+preconfig_read_file(){
+	[ -f "$1" ] || return 1
+	preconfig_value="$(cat "$1")"
+	[ -n "$preconfig_value" ] && [ "$preconfig_value" != "nil" ] || return 1
+	printf '%s\n' "$preconfig_value"
+	return 0
+}
+
 preconfig_load(){
-	if [ -f "$PRECONFIG_PRIMARY" ]; then
-		cat "$PRECONFIG_PRIMARY"
-	elif [ -f "$PRECONFIG_COMPAT" ]; then
-		cat "$PRECONFIG_COMPAT"
+	if preconfig_read_file "$PRECONFIG_PRIMARY"; then
+		return 0
+	elif preconfig_read_file "$PRECONFIG_COMPAT"; then
+		return 0
+	elif [ -n "$LINKEASE_DATA_ROOT" ] && preconfig_read_file "$LINKEASE_DATA_ROOT/apptunnel/preconfig.data"; then
+		return 0
 	else
 		echo nil
 	fi
 }
 
+preconfig_legacy_data_path(){
+	[ -n "$LINKEASE_DATA_ROOT" ] && printf '%s\n' "$LINKEASE_DATA_ROOT/apptunnel/preconfig.data"
+}
+
+sync_preconfig_for_binaries(){
+	preconfig_value="$(preconfig_load)"
+	[ -n "$preconfig_value" ] && [ "$preconfig_value" != "nil" ] || return 0
+	mkdir -p "$(dirname "$PRECONFIG_PRIMARY")" "$(dirname "$PRECONFIG_COMPAT")" >/dev/null 2>&1
+	printf '%s\n' "$preconfig_value" > "$PRECONFIG_PRIMARY"
+	printf '%s\n' "$preconfig_value" > "$PRECONFIG_COMPAT"
+	legacy_preconfig="$(preconfig_legacy_data_path)"
+	if [ -n "$legacy_preconfig" ]; then
+		mkdir -p "$(dirname "$legacy_preconfig")" >/dev/null 2>&1
+		printf '%s\n' "$preconfig_value" > "$legacy_preconfig"
+	fi
+}
+
 preconfig_save(){
 	mkdir -p "$(dirname "$PRECONFIG_PRIMARY")" "$(dirname "$PRECONFIG_COMPAT")" >/dev/null 2>&1
-	if [ -n "$1" ]; then
+	if [ -n "$1" ] && [ "$1" != "nil" ]; then
 		printf '%s\n' "$1" > "$PRECONFIG_PRIMARY"
 	else
-		printf 'nil\n' > "$PRECONFIG_PRIMARY"
+		existing_preconfig="$(preconfig_load)"
+		if [ -n "$existing_preconfig" ] && [ "$existing_preconfig" != "nil" ]; then
+			printf '%s\n' "$existing_preconfig" > "$PRECONFIG_PRIMARY"
+		else
+			printf 'nil\n' > "$PRECONFIG_PRIMARY"
+		fi
 	fi
 	cp -f "$PRECONFIG_PRIMARY" "$PRECONFIG_COMPAT" >/dev/null 2>&1
 }
@@ -380,11 +412,14 @@ start_full_binary(){
 
 start_standard_binary(){
 	modprobe cifs >/dev/null 2>&1 || true
-	start-stop-daemon -S -q -b -x $LEGACY_BIN -- run \
-		--deviceAddr ":${STANDARD_PORT}" \
-		--rootDir "$USER_DATA_PATH" \
-		--supplierCode "linkease" \
-		--allowPublic
+	(
+		cd /koolshare/bin || exit 1
+		start-stop-daemon -S -q -b -x $LEGACY_BIN -- \
+			--deviceAddr ":${STANDARD_PORT}" \
+			--rootDir "$USER_DATA_PATH" \
+			--supplierCode "linkease" \
+			run
+	)
 }
 
 stop_linkeaselite_runtime(){
@@ -394,6 +429,7 @@ stop_linkeaselite_runtime(){
 
 start_standard(){
 	ensure_dirs || return 1
+	sync_preconfig_for_binaries
 	kill_ee
 	stop_linkeaselite_runtime
 	ulimit -v unlimited 2>/dev/null || true
@@ -404,6 +440,7 @@ start_standard(){
 
 start_full(){
 	ensure_dirs || return 1
+	sync_preconfig_for_binaries
 	ensure_apps_forward || return 1
 	kill_ee
 	stop_linkeaselite_runtime
@@ -435,6 +472,12 @@ kill_ee(){
 	killall ld-musl-aarch64.so.1 >/dev/null 2>&1
 	killall ld-musl-x86_64.so.1 >/dev/null 2>&1
 	killall hostlink >/dev/null 2>&1
+	ps w | grep '/koolshare/bin/link-ease' | grep -v grep | while read pid rest; do
+		kill "$pid" >/dev/null 2>&1
+	done
+	ps w | grep '/koolshare/bin/linkease-full' | grep -v grep | while read pid rest; do
+		kill "$pid" >/dev/null 2>&1
+	done
 	rm -f $FULL_PID_FILE /var/run/linkease-desktop.pid /var/run/linkease-apptunnel.pid >/dev/null 2>&1
 }
 

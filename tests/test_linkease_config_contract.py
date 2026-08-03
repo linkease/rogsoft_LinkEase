@@ -81,6 +81,9 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             "preconfig_load()",
             "preconfig_save()",
             "preconfig_local_save()",
+            "sync_preconfig_for_binaries()",
+            'printf \'%s\\n\' "$preconfig_value" > "$PRECONFIG_PRIMARY"',
+            'printf \'%s\\n\' "$preconfig_value" > "$PRECONFIG_COMPAT"',
             "load)",
             "save)",
             "local_load)",
@@ -338,6 +341,14 @@ class LinkEaseConfigContractTest(unittest.TestCase):
             self.assertIn(item, self.config)
         self.assertNotIn("start_lite()", self.config)
         self.assertNotIn("lite)", self.config)
+
+    def test_standard_starts_from_legacy_binary_directory(self):
+        block = re.search(r"start_standard_binary\(\)\{([\s\S]*?)\n\}", self.config)
+        self.assertIsNotNone(block)
+        body = block.group(1)
+        self.assertIn("cd /koolshare/bin", body)
+        self.assertIn("start-stop-daemon -S -q -b -x $LEGACY_BIN", body)
+        self.assertLess(body.index("cd /koolshare/bin"), body.index("start-stop-daemon"))
 
     def test_full_start_records_runtime_logs_and_exit_code(self):
         block = re.search(r"start_full_binary\(\)\{([\s\S]*?)\n\}", self.config)

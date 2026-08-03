@@ -19,7 +19,6 @@ FULL_ARTIFACT_FIELDS = ("full_artifact_url", "full_artifact_sha256")
 FULL_BINARY = "linkease-full"
 RUNTIME_BINARIES = (
     "linkease-full",
-    "link-ease",
     "linkremote-agent",
     "heif-converter",
     "hostlink",
@@ -149,7 +148,7 @@ def stage_full_artifacts(module_dir, artifact_dir):
 
 def remove_staged_full_artifact(module_dir):
     module_dir = Path(module_dir)
-    for binary in ("linkease-full", "link-ease", "linkremote-agent", "heif-converter", "hostlink"):
+    for binary in RUNTIME_BINARIES:
         path = module_dir / "bin" / binary
         if path.exists() or path.is_symlink():
             path.unlink()
